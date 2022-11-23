@@ -2,8 +2,9 @@ package flagset
 
 import (
 	"errors"
-	"github.com/kubefirst/kubefirst/pkg"
 	"log"
+
+	"github.com/kubefirst/kubefirst/pkg"
 
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/addon"
@@ -74,7 +75,7 @@ func ProcessInstallerGenericFlags(cmd *cobra.Command) (InstallerGenericFlags, er
 	}
 	flags.AdminEmail = adminEmail
 	log.Println("adminEmail:", adminEmail)
-	viper.Set("adminemail", adminEmail)
+	// viper.Set("adminemail", adminEmail)
 
 	clusterName, err := ReadConfigString(cmd, "cluster-name")
 	if err != nil {

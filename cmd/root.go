@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	aws "github.com/kubefirst/kubefirst/cmd/aws"
-	local "github.com/kubefirst/kubefirst/cmd/local"
+	"github.com/kubefirst/kubefirst/cmd/aws"
+	"github.com/kubefirst/kubefirst/cmd/local"
 	"github.com/kubefirst/kubefirst/configs"
 
 	"github.com/kubefirst/kubefirst/internal/progressPrinter"

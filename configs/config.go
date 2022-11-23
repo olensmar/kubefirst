@@ -61,7 +61,7 @@ type Config struct {
 
 	LocalArgoWorkflowsURL string
 	LocalVaultURL         string
-	LocalArgoURL          string
+	LocalArgoCdURL        string
 	LocalAtlantisURL      string
 	LocalChartmuseumURL   string
 
@@ -77,7 +77,7 @@ type Config struct {
 	LocalMetaphorGoProd    string
 	LocalMetaphorFrontProd string
 
-	GitHubPersonalAccessToken string `env:"KUBEFIRST_GITHUB_AUTH_TOKEN"`
+	GithubToken string `env:"GITHUB_TOKEN"`
 }
 
 // ReadConfig - load default values from kubefirst installer
@@ -130,7 +130,7 @@ func ReadConfig() *Config {
 	// Local Configs URL
 	config.LocalArgoWorkflowsURL = "http://localhost:2746"
 	config.LocalVaultURL = "http://localhost:8200"
-	config.LocalArgoURL = "http://localhost:8080"
+	config.LocalArgoCdURL = "http://localhost:8080"
 	config.LocalAtlantisURL = "http://localhost:4141"
 	config.LocalChartmuseumURL = "http://localhost:8181"
 
