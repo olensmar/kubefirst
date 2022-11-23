@@ -19,6 +19,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// validateAws is responsible for gathering all of the information required to execute a kubefirst aws cloud creation with github (currently)
+// this function needs to provide all the generated values and provides a single space for writing and updating configuration up front.
 func validateAws(cmd *cobra.Command, args []string) error {
 
 	// infoCmd.Run(cmd, args)
@@ -40,6 +42,8 @@ func validateAws(cmd *cobra.Command, args []string) error {
 		log.Panic(err)
 	}
 	if awsRegionFlag == "" {
+		//* if the region is not set we want to force the sdk to look at
+		//* $HOME/.aws/config and use the region set in the users config
 		os.Setenv("AWS_SDK_LOAD_CONFIG", "true")
 	}
 
@@ -62,17 +66,18 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Panic(err)
 	}
+	//! hack
+	// gitopsTemplateBranchFlag, err := cmd.Flags().GetString("gitops-template-branch")
+	// if err != nil {
+	// 	log.Panic(err)
+	// }
 
-	gitopsTemplateBranchFlag, err := cmd.Flags().GetString("gitops-template-branch")
-	if err != nil {
-		log.Panic(err)
-	}
 	gitProviderFlag, err := cmd.Flags().GetString("git-provider")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	hostedZoneNameFlag, err := cmd.Flags().GetString("aws-hosted-zone-name")
+	awsHostedZoneNameFlag, err := cmd.Flags().GetString("aws-hosted-zone-name")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -82,8 +87,8 @@ func validateAws(cmd *cobra.Command, args []string) error {
 		log.Panic(err)
 	}
 
-	if strings.HasSuffix(hostedZoneNameFlag, ".") {
-		hostedZoneNameFlag = hostedZoneNameFlag[:len(hostedZoneNameFlag)-1]
+	if strings.HasSuffix(awsHostedZoneNameFlag, ".") {
+		awsHostedZoneNameFlag = awsHostedZoneNameFlag[:len(awsHostedZoneNameFlag)-1]
 	}
 
 	useTelemetryFlag, err := cmd.Flags().GetBool("use-telemetry")
@@ -92,11 +97,11 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	}
 
 	if useTelemetryFlag {
-		if err := wrappers.SendSegmentIoTelemetry(hostedZoneNameFlag, pkg.MetricInitStarted); err != nil {
+		if err := wrappers.SendSegmentIoTelemetry(awsHostedZoneNameFlag, pkg.MetricInitStarted); err != nil {
 			log.Println(err)
 		}
 	}
-
+	//! hack
 	// if err := pkg.ValidateK1Folder(config.K1FolderPath); err != nil {
 	// 	return err
 	// }
@@ -109,18 +114,17 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	gitHubService := services.NewGitHubService(httpClient)
 	gitHubHandler := handlers.NewGitHubHandler(gitHubService)
 
-	// get GitHub data to set user based on the provided token
+	// get Github data to set user based on the provided token
 	log.Println("verifying github user")
 	githubUser, err := gitHubHandler.GetGitHubUser(githubToken)
 	if err != nil {
 		return err
 	}
 	log.Println("github user is: ", githubUser)
+	// todo evaluate if cloudProviderFlag == "local" {githubOwnerFlag = githubUser} and the rest of the execution is the same
 
 	err = gitHubHandler.CheckGithubOrganizationPermissions(githubToken, githubOwnerFlag, githubUser)
 	if err != nil {
-		// is a log here valuable or duplicative?
-		// log.Println(fmt.Sprintf("insufficient permissions for the authenticated user (GITHUB_TOKEN).\n please make sure the token is an `Owner` in %s", githubOwnerFlag))
 		return err
 	}
 
@@ -132,18 +136,30 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	log.Printf("aws account id: %s\naws user arn: %s", awsAccountId, awsIamArn)
 
 	log.Println("getting aws hosted zone id for zone ", awsHostedZoneNameFlag)
-	awsHostedZoneId := aws.GetHostedZoneId(awsProfileFlag, awsRegion, hostedZoneNameFlag)
-	log.Printf("aws hosted zone id %s", awsHostedZoneNameFlag)
+	awsHostedZoneId := aws.GetHostedZoneId(awsProfileFlag, awsRegion, awsHostedZoneNameFlag)
+	log.Printf("aws hosted zone id %s", awsHostedZoneId)
 
-	log.Printf("creating state store bucket ")
-	k1StateStoreBucketName, err := aws.CreateKubefirstStateStoreBucket(awsProfileFlag, awsRegion, clusterNameFlag)
-	if err != nil {
-		log.Printf("creating state store bucket ")
-		return err
-	}
+	//! hack
+	k1StateStoreBucketName := "my-bucket"
+	// log.Printf("creating state store bucket ")
+	// k1StateStoreBucketName, err := aws.CreateKubefirstStateStoreBucket(awsProfileFlag, awsRegion, clusterNameFlag)
+	// if err != nil {
+	// 	log.Printf("creating state store bucket ")
+	// 	return err
+	// }
 
 	log.Println("creating an ssh key pair for your new cloud infrastructure")
-	privKey, pubKey, err := pkg.CreateSshKeyPair()
+	sshPrivateKey, sshPublicKey, err := pkg.CreateSshKeyPair()
+	if err != nil {
+		return err
+	}
+	log.Println("ssh key pair creation complete")
+
+	// todo, is this a hangover from initial gitlab? do we need this?
+	log.Println("creating argocd-init-values.yaml for initial install")
+	//* ex: `git@github.com:kubefirst` this is allows argocd access to the kubefirst organization repos
+	githubOwnerRootGitUrl := fmt.Sprintf("git@github.com:%s", githubOwnerFlag)
+	err = pkg.WriteGithubArgoCdInitValuesFile(githubOwnerRootGitUrl, sshPrivateKey)
 	if err != nil {
 		return err
 	}
@@ -159,21 +175,35 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	viper.Set("aws.account-id", awsAccountId)
 	viper.Set("aws.iam-arn", awsIamArn)
 	viper.Set("aws.hosted-zone-id", awsHostedZoneId)
-	viper.Set("aws.hosted-zone-name", hostedZoneNameFlag)
+	viper.Set("aws.hosted-zone-name", awsHostedZoneNameFlag)
 	viper.Set("aws.profile", awsProfileFlag)
 	viper.Set("aws.region", awsRegion)
 	viper.Set("argocd.local.service", config.LocalArgoCdURL)
 	viper.Set("cloud-provider", cloudProviderFlag)
-	viper.Set("gitops-template.repo.branch", gitopsTemplateBranchFlag)
+	//! hack
+	// viper.Set("gitops-template.repo.branch", gitopsTemplateBranchFlag)
+	viper.Set("gitops-template.repo.branch", "domain-refactor")
 	viper.Set("gitops-template.repo.url", gitopsTemplateUrlFlag)
 	viper.Set("git-provider", gitProviderFlag)
+
 	viper.Set("github.atlantis.webhook.secret", pkg.Random(20))
-	viper.Set("github.gitops-repo.url", fmt.Sprintf("https://github.com/%s/gitops.git", githubOwnerFlag))
+	viper.Set("github.repo.gitops.url", fmt.Sprintf("https://github.com/%s/gitops.git", githubOwnerFlag))
+	viper.Set("github.repo.metaphor.url", fmt.Sprintf("https://github.com/%s/metaphor.git", githubOwnerFlag))
+	viper.Set("github.repo.metaphor-frontend.url", fmt.Sprintf("https://github.com/%s/metaphor-frontend.git", githubOwnerFlag))
+	viper.Set("github.repo.metaphor-go.url", fmt.Sprintf("https://github.com/%s/metaphor-go.git", githubOwnerFlag))
 	viper.Set("github.owner", githubOwnerFlag)
 	viper.Set("github.user", githubUser)
+
+	// todo accommodate metaphor branch and repo override more intelligently
+	viper.Set("template-repo.metaphor.url", fmt.Sprintf("https://github.com/%s/metaphor.git", "kubefirst"))
+	viper.Set("template-repo.metaphor.branch", "main")
+	viper.Set("template-repo.metaphor-frontend.url", fmt.Sprintf("https://github.com/%s/metaphor-frontend.git", "kubefirst"))
+	viper.Set("template-repo.metaphor-frontend.branch", "main")
+	viper.Set("template-repo.metaphor-go.url", fmt.Sprintf("https://github.com/%s/metaphor-go.git", "kubefirst"))
+	viper.Set("template-repo.metaphor-go.branch", "main")
 	viper.Set("kubefirst.bot.password", kbotPassword)
-	viper.Set("kubefirst.bot.private-key", privKey)
-	viper.Set("kubefirst.bot.public-key", pubKey)
+	viper.Set("kubefirst.bot.private-key", sshPrivateKey)
+	viper.Set("kubefirst.bot.public-key", sshPublicKey)
 	viper.Set("kubefirst.bot.user", "kbot")
 	viper.Set("kubefirst.state-store.bucket", k1StateStoreBucketName)
 	viper.Set("kubefirst.telemetry", useTelemetryFlag)
@@ -205,7 +235,7 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	}
 
 	if useTelemetryFlag {
-		if err := wrappers.SendSegmentIoTelemetry(hostedZoneNameFlag, pkg.MetricInitCompleted); err != nil {
+		if err := wrappers.SendSegmentIoTelemetry(awsHostedZoneNameFlag, pkg.MetricInitCompleted); err != nil {
 			log.Println(err)
 		}
 	}

@@ -20,8 +20,6 @@ import (
 
 func CreateSshKeyPair() (string, string, error) {
 
-	config := configs.ReadConfig()
-
 	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return "", "", err
@@ -40,26 +38,6 @@ func CreateSshKeyPair() (string, string, error) {
 	privateKey := string(pem.EncodeToMemory(pemPrivateKey))
 	publicKey := string(ssh.MarshalAuthorizedKey(ecdsaPublicKey))
 
-	var argocdInitValuesYaml = []byte(fmt.Sprintf(`
-configs:
-  repositories:
-    soft-serve-gitops:
-      url: ssh://soft-serve.soft-serve.svc.cluster.local:22/gitops
-      insecure: 'true'
-      type: gitClient
-      name: soft-serve-gitops
-  credentialTemplates:
-    ssh-creds:
-      url: ssh://soft-serve.soft-serve.svc.cluster.local:22
-      sshPrivateKey: |
-        %s
-`, strings.ReplaceAll(privateKey, "\n", "\n        ")))
-
-	err = os.WriteFile(fmt.Sprintf("%s/argocd-init-values.yaml", config.K1FolderPath), argocdInitValuesYaml, 0644)
-	if err != nil {
-		log.Panicf("error: could not write argocd-init-values.yaml %s", err)
-		return "", "", err
-	}
 	return privateKey, publicKey, nil
 }
 
@@ -70,6 +48,33 @@ func PublicKey() (*goGitSsh.PublicKeys, error) {
 		return nil, err
 	}
 	return publicKey, err
+}
+
+// todo hack - need something more substantial and accommodating
+func WriteGithubArgoCdInitValuesFile(githubGitopsSshUrl, sshPrivateKey string) error {
+
+	config := configs.ReadConfig()
+
+	var argocdInitValuesYaml = []byte(fmt.Sprintf(`
+configs:
+  repositories:
+    gitops:
+      url: %s/gitops.git
+      type: gitClient
+      name: gitops
+  credentialTemplates:
+    ssh-creds:
+      url: %s
+      sshPrivateKey: |
+        %s
+`, githubGitopsSshUrl, githubGitopsSshUrl, strings.ReplaceAll(sshPrivateKey, "\n", "\n        ")))
+
+	err := os.WriteFile(fmt.Sprintf("%s/argocd-init-values.yaml", config.K1FolderPath), argocdInitValuesYaml, 0644)
+	if err != nil {
+		log.Panicf("error: could not write %s/argocd-init-values.yaml %s", config.K1FolderPath, err)
+		return err
+	}
+	return nil
 }
 
 // generateGitLabKeys generate public and private keys to be consumed by GitLab. Private Key is encrypted using RSA key with
