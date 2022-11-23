@@ -10,7 +10,6 @@ import (
 
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/aws"
-	"github.com/kubefirst/kubefirst/internal/downloadManager"
 	"github.com/kubefirst/kubefirst/internal/handlers"
 	"github.com/kubefirst/kubefirst/internal/services"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
@@ -217,28 +216,14 @@ func validateAws(cmd *cobra.Command, args []string) error {
 
 	log.Println("validation and kubefirst cli environment is complete")
 
-	//* download dependencies `$HOME/.k1/tools`
-	if !viper.GetBool("kubefirst.dependency-download.complete") {
-		log.Println("installing kubefirst dependencies")
-
-		err = downloadManager.DownloadTools(config)
-		if err != nil {
-			return err
-		}
-
-		log.Println("download dependencies `$HOME/.k1/tools` complete")
-		viper.Set("kubefirst.dependency-download.complete", true)
-		viper.WriteConfig()
-	} else {
-		log.Println("download dependencies `$HOME/.k1/tools` already done - continuing")
-		// log.Println("k1Config: kubefirst.dependency-download.complete") // todo is this valuable for debugging?
-	}
-
 	if useTelemetryFlag {
 		if err := wrappers.SendSegmentIoTelemetry(awsHostedZoneNameFlag, pkg.MetricInitCompleted); err != nil {
 			log.Println(err)
 		}
 	}
+
+	// todo progress bars
+	// time.Sleep(time.Millisecond * 100) // to allow progress bars to finish
 
 	return nil
 }

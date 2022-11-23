@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/kubefirst/kubefirst/configs"
+	"github.com/kubefirst/kubefirst/internal/downloadManager"
 	"github.com/kubefirst/kubefirst/internal/reports"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
 	"github.com/kubefirst/kubefirst/pkg"
@@ -17,18 +18,19 @@ import (
 
 func runAws(cmd *cobra.Command, args []string) error {
 
-	// config := configs.ReadConfig()
+	config := configs.ReadConfig()
 
-	//* confirm with user
-	var userInput string
-	printConfirmationScreen()
-	// todo skip to confirmation value if we get to here and they exit
-	go counter()
-	fmt.Println("to proceed, type 'yes' any other answer will exit")
-	fmt.Scanln(&userInput)
-	if userInput != "yes" {
-		os.Exit(1)
-	}
+	//* confirm with user to continue
+	// var userInput string
+	// printConfirmationScreen()
+	// todo skip to confirmation value if we get to here and they exit here
+	// otherwise we need to clean and restart / reset
+	// go counter()
+	// fmt.Println("to proceed, type 'yes' any other answer will exit")
+	// fmt.Scanln(&userInput)
+	// if userInput != "yes" {
+	// 	os.Exit(1)
+	// }
 
 	// viper.GetString("admin-email")
 	// viper.GetString("aws.account-id")
@@ -55,10 +57,29 @@ func runAws(cmd *cobra.Command, args []string) error {
 	// viper.GetString("cluster-name")
 	// viper.GetString("vault.local.service")
 	// config := configs.ReadConfig()
+	//* emit cluster install started
 	if useTelemetryFlag {
 		if err := wrappers.SendSegmentIoTelemetry(awsHostedZone, pkg.MetricMgmtClusterInstallStarted); err != nil {
 			log.Println(err)
 		}
+	}
+
+	// todo download dependencies
+	//* download dependencies `$HOME/.k1/tools`
+	if !viper.GetBool("kubefirst.dependency-download.complete") {
+		log.Println("installing kubefirst dependencies")
+
+		err := downloadManager.DownloadTools(config)
+		if err != nil {
+			return err
+		}
+
+		log.Println("download dependencies `$HOME/.k1/tools` complete")
+		viper.Set("kubefirst.dependency-download.complete", true)
+		viper.WriteConfig()
+	} else {
+		log.Println("download dependencies `$HOME/.k1/tools` already done - continuing")
+		// log.Println("k1Config: kubefirst.dependency-download.complete") // todo is this valuable for debugging?
 	}
 
 	// todo clone and detokenize repo
