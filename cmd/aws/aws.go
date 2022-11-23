@@ -13,10 +13,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/downloadManager"
-	"github.com/kubefirst/kubefirst/internal/progressPrinter"
+	"github.com/kubefirst/kubefirst/internal/gitClient"
 	"github.com/kubefirst/kubefirst/internal/reports"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
 	"github.com/kubefirst/kubefirst/pkg"
+	cp "github.com/otiai10/copy"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,7 +37,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 	// if userInput != "yes" {
 	// 	os.Exit(1)
 	// }
-
+	silentMode := false
 	// viper.GetString("admin-email")
 	// viper.GetString("aws.account-id")
 	// viper.GetString("aws.iam-arn")
@@ -46,8 +47,8 @@ func runAws(cmd *cobra.Command, args []string) error {
 	// viper.GetString("aws.region")
 	// viper.GetString("argocd.local.service")
 	// viper.GetString("cloud-provider")
-	// viper.GetString("gitops-template.repo.branch")
-	// viper.GetString("gitops-template.repo.url")
+	gitopsTemplateBranch := viper.GetString("template-repo.gitops.branch")
+	gitopsTemplateUrl := viper.GetString("template-repo.gitops.url")
 	// viper.GetString("git-provider")
 	// viper.GetString("github.atlantis.webhook.secret")
 	// githubGitopsRepoUrl := viper.GetString("github.gitops-repo.url")
@@ -69,7 +70,6 @@ func runAws(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// todo download dependencies
 	//* download dependencies `$HOME/.k1/tools`
 	if !viper.GetBool("kubefirst.dependency-download.complete") {
 		log.Println("installing kubefirst dependencies")
@@ -84,25 +84,18 @@ func runAws(cmd *cobra.Command, args []string) error {
 		viper.WriteConfig()
 	} else {
 		log.Println("download dependencies `$HOME/.k1/tools` already done - continuing")
-		// log.Println("k1Config: kubefirst.dependency-download.complete") // todo is this valuable for debugging?
 	}
-
-	// todo clone and detokenize repo
-
 	//* git clone and detokenize the gitops repository
 	if !viper.GetBool("kubefirst.clone-gitops-template.complete") {
 
 		//* step 1
-		pkg.InformUser("generating your new gitops repository", silentModeFlag)
-		progressPrinter.IncrementTracker("step-generate-gitops", 1)
+		pkg.InformUser("generating your new gitops repository", silentMode)
 
 		gitopsRepoDir := fmt.Sprintf("%s/%s", config.K1FolderPath, "gitops")
-		gitClient.CloneRepo(gitopsTemplateUrlFlag, gitopsTemplateBranchFlag, gitopsRepoDir)
+		gitClient.CloneRepo(gitopsTemplateUrl, gitopsTemplateBranch, gitopsRepoDir)
 		log.Println("gitops repository generation complete")
-		//* step 2
-		progressPrinter.IncrementTracker("step-generate-gitops", 1) // todo need to add these per step
 
-		//* step 3
+		//* step 2
 		// adjust content in repodir
 		opt := cp.Options{
 			Skip: func(src string) (bool, error) {
@@ -117,7 +110,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 			},
 		}
 
-		//Tweak folder
+		// clear out the root of `gitops-template`
 		os.RemoveAll(gitopsRepoDir + "/components")
 		os.RemoveAll(gitopsRepoDir + "/localhost")
 		os.RemoveAll(gitopsRepoDir + "/registry")

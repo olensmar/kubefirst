@@ -179,20 +179,21 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	viper.Set("aws.region", awsRegion)
 	viper.Set("argocd.local.service", config.LocalArgoCdURL)
 	viper.Set("cloud-provider", cloudProviderFlag)
-	//! hack
-	// viper.Set("gitops-template.repo.branch", gitopsTemplateBranchFlag)
-	viper.Set("gitops-template.repo.branch", "domain-refactor")
-	viper.Set("gitops-template.repo.url", gitopsTemplateUrlFlag)
 	viper.Set("git-provider", gitProviderFlag)
 
 	viper.Set("github.atlantis.webhook.secret", pkg.Random(20))
 	viper.Set("github.repo.gitops.url", fmt.Sprintf("https://github.com/%s/gitops.git", githubOwnerFlag))
+	viper.Set("github.repo.gitops.giturl", fmt.Sprintf("%s/gitops.git", githubOwnerRootGitUrl))
 	viper.Set("github.repo.metaphor.url", fmt.Sprintf("https://github.com/%s/metaphor.git", githubOwnerFlag))
 	viper.Set("github.repo.metaphor-frontend.url", fmt.Sprintf("https://github.com/%s/metaphor-frontend.git", githubOwnerFlag))
 	viper.Set("github.repo.metaphor-go.url", fmt.Sprintf("https://github.com/%s/metaphor-go.git", githubOwnerFlag))
 	viper.Set("github.owner", githubOwnerFlag)
 	viper.Set("github.user", githubUser)
 
+	//! hack
+	// viper.Set("gitops-template.repo.branch", gitopsTemplateBranchFlag)
+	viper.Set("template-repo.gitops.branch", "domain-refactor")
+	viper.Set("template-repo.gitops.url", gitopsTemplateUrlFlag)
 	// todo accommodate metaphor branch and repo override more intelligently
 	viper.Set("template-repo.metaphor.url", fmt.Sprintf("https://github.com/%s/metaphor.git", "kubefirst"))
 	viper.Set("template-repo.metaphor.branch", "main")

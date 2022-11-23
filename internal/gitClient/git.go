@@ -25,6 +25,20 @@ const Github = "github"
 // Gitlab - git-provider github
 const Gitlab = "gitlab"
 
+// ? is this unique enough in each flavor to have their own?
+// ? or do we refactor this to handle all clouds and setups i.e. k3d
+func CloneRepo(gitRepoUrl, branch, gitRepoDestinationDir string) {
+	log.Printf("Trying to clone branch(%s):%s ", branch, gitRepoUrl)
+	_, err := git.PlainClone(gitRepoDestinationDir, false, &git.CloneOptions{
+		URL:           gitRepoUrl,
+		ReferenceName: plumbing.NewBranchReferenceName(branch),
+		SingleBranch:  true,
+	})
+	if err != nil {
+		log.Fatalf("error cloning git repository %s branch", gitRepoUrl, branch)
+	}
+}
+
 // CloneRepoAndDetokenizeTemplate - clone repo using CloneRepoAndDetokenizeTemplate that uses fallback rule to try to capture version
 func CloneRepoAndDetokenizeTemplate(githubOwner, repoName, folderName string, branch string, tag string) (string, error) {
 	config := configs.ReadConfig()
