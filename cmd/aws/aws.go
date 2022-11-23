@@ -1,8 +1,6 @@
 package local
 
 import (
-	"log"
-
 	"github.com/spf13/cobra"
 )
 
@@ -37,11 +35,11 @@ func NewCommand() *cobra.Command {
 func runAws(cmd *cobra.Command, args []string) error {
 
 	// config := configs.ReadConfig()
-	gitProviderFlag, err := cmd.Flags().GetString("git-provider")
-	if err != nil {
-		return err
-	}
-	log.Println("this is a test", gitProviderFlag)
+	// gitProviderFlag, err := cmd.Flags().GetString("git-provider")
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Println("git-provider flag value", gitProviderFlag)
 
 	return nil
 
