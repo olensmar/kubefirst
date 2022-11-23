@@ -18,47 +18,27 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func CreateSshKeyPair() {
+func CreateSshKeyPair() (string, string, error) {
 
 	config := configs.ReadConfig()
-	publicKey := viper.GetString("botpublickey")
 
-	// generate GitLab keys
-	if publicKey == "" && viper.GetString("gitprovider") == "gitlab" {
-
-		log.Println("generating new key pair for GitLab")
-		publicKey, privateKey, err := generateGitLabKeys()
-		if err != nil {
-			log.Println(err)
-		}
-
-		viper.Set("botpublickey", publicKey)
-		viper.Set("botprivatekey", privateKey)
-		err = viper.WriteConfig()
-		if err != nil {
-			log.Panicf("error: could not write to viper config")
-		}
+	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return "", "", err
 	}
 
-	// generate GitHub keys
-	if publicKey == "" && viper.GetString("gitprovider") == "github" {
-
-		log.Println("generating new key pair for GitHub")
-		publicKey, privateKey, err := generateGitHubKeys()
-		if err != nil {
-			log.Println(err)
-		}
-
-		viper.Set("botpublickey", publicKey)
-		viper.Set("botprivatekey", privateKey)
-		err = viper.WriteConfig()
-		if err != nil {
-			log.Panicf("error: could not write to viper config")
-		}
-
+	ecdsaPublicKey, err := ssh.NewPublicKey(pubKey)
+	if err != nil {
+		return "", "", err
 	}
-	publicKey = viper.GetString("botpublickey")
-	privateKey := viper.GetString("botprivatekey")
+
+	pemPrivateKey, err := sshmarshal.MarshalPrivateKey(privKey, "kubefirst key")
+	if err != nil {
+		return "", "", err
+	}
+
+	privateKey := string(pem.EncodeToMemory(pemPrivateKey))
+	publicKey := string(ssh.MarshalAuthorizedKey(ecdsaPublicKey))
 
 	var argocdInitValuesYaml = []byte(fmt.Sprintf(`
 configs:
@@ -75,10 +55,12 @@ configs:
         %s
 `, strings.ReplaceAll(privateKey, "\n", "\n        ")))
 
-	err := os.WriteFile(fmt.Sprintf("%s/argocd-init-values.yaml", config.K1FolderPath), argocdInitValuesYaml, 0644)
+	err = os.WriteFile(fmt.Sprintf("%s/argocd-init-values.yaml", config.K1FolderPath), argocdInitValuesYaml, 0644)
 	if err != nil {
 		log.Panicf("error: could not write argocd-init-values.yaml %s", err)
+		return "", "", err
 	}
+	return privateKey, publicKey, nil
 }
 
 func PublicKey() (*goGitSsh.PublicKeys, error) {

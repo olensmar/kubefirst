@@ -156,7 +156,6 @@ func (handler GitHubHandler) GetGitHubUser(gitHubAccessToken string) (string, er
 		return "", errors.New("unable to retrieve username via GitHub API")
 	}
 
-	log.Println("GitHub user: ", githubUser.Login)
 	return githubUser.Login, nil
 
 }

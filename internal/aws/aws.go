@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/route53"
 	route53Types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/cip8/autoname"
@@ -87,10 +88,17 @@ func NewAws() (aws.Config, error) {
 	return awsClient, nil
 }
 
-func BucketRand(dryRun bool) {
+func BucketRand(dryRun bool) (string, error) {
 
 	// todo: use method approach to avoid new AWS client initializations
-	awsConfig, err := NewAws()
+	awsConfig, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("us-west-2"),
+		config.WithSharedConfigProfile("starter"),
+	)
+	if err != nil {
+		return "", err
+	}
 	if err != nil {
 		log.Println(err)
 	}
@@ -103,7 +111,7 @@ func BucketRand(dryRun bool) {
 		viper.Set("bucket.rand", randomName)
 	}
 
-	buckets := strings.Fields("state-store argo-artifacts gitlab-backup chartmuseum")
+	buckets := strings.Fields("state-store")
 	for _, bucket := range buckets {
 		bucketExists := viper.GetBool(fmt.Sprintf("bucket.%s.created", bucket))
 		if !bucketExists {
@@ -158,6 +166,122 @@ func BucketRand(dryRun bool) {
 		}
 		log.Printf("bucket %s exists", viper.GetString(fmt.Sprintf("bucket.%s.name", bucket)))
 	}
+	return "", nil
+}
+
+func CreateKubefirstStateStoreBucket(awsProfile, awsRegion, clusterName string) (string, error) {
+
+	// todo: use method approach to avoid new AWS client initializations
+	awsConfig, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion(awsRegion),
+		config.WithSharedConfigProfile(awsProfile),
+	)
+	if err != nil {
+		return "", err
+	}
+	s3Client := s3.NewFromConfig(awsConfig)
+
+	bucketName := fmt.Sprintf("k1-state-store-%s", strings.ReplaceAll(autoname.Generate(), "_", "-"))
+
+	if awsConfig.Region == "us-east-1" {
+		_, err = s3Client.CreateBucket(context.TODO(), &s3.CreateBucketInput{
+			Bucket: aws.String(bucketName),
+			ACL:    types.BucketCannedACLPrivate,
+		})
+	} else {
+		_, err = s3Client.CreateBucket(context.TODO(), &s3.CreateBucketInput{
+			Bucket:                    aws.String(bucketName),
+			ACL:                       types.BucketCannedACLPrivate,
+			CreateBucketConfiguration: &types.CreateBucketConfiguration{LocationConstraint: s3Types.BucketLocationConstraint(awsRegion)},
+		})
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	versionConfigInput := &s3.PutBucketVersioningInput{
+		Bucket: aws.String(bucketName),
+		VersioningConfiguration: &s3Types.VersioningConfiguration{
+			Status: s3Types.BucketVersioningStatusEnabled,
+		},
+	}
+
+	_, err = s3Client.PutBucketVersioning(context.Background(), versionConfigInput)
+	if err != nil {
+		return "", err
+	}
+	PutTagKubefirstOnBuckets(bucketName, clusterName)
+	return bucketName, nil
+}
+
+func GetAccountInfoV2(awsProfile, awsRegion string) (string, string, string, error) {
+
+	awsConfig, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion(awsRegion),
+		config.WithSharedConfigProfile(awsProfile),
+	)
+	if err != nil {
+		errMsg := fmt.Sprintf("unable to initialize AWS service, error: %e", err)
+		return "", "", "", errors.New(errMsg)
+	}
+
+	// todo: use method approach to avoid new AWS client initializations
+	stsClient := sts.NewFromConfig(awsConfig)
+	iamCaller, err := stsClient.GetCallerIdentity(
+		context.Background(),
+		&sts.GetCallerIdentityInput{},
+	)
+	if err != nil {
+		log.Panicf("error: could not get caller identity %s", err)
+	}
+
+	return *iamCaller.Account, *iamCaller.Arn, awsConfig.Region, nil
+
+}
+
+// GetDNSInfo try to reach the provided hosted zone
+func GetHostedZoneId(awsProfile, awsRegion, awsHostedZoneName string) string {
+
+	awsConfig, err := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion(awsRegion),
+		config.WithSharedConfigProfile(awsProfile),
+	)
+
+	log.Println("GetDNSInfoV2 todo - look at awsConfig for re-usability")
+	if err != nil {
+		log.Println("failed to load configuration, error:", err)
+	}
+	// https://aws.github.io/aws-sdk-go-v2/docs/making-requests/#overriding-configuration
+	route53Client := route53.NewFromConfig(awsConfig)
+	hostedZones, err := route53Client.ListHostedZonesByName(
+		context.Background(),
+		&route53.ListHostedZonesByNameInput{
+			DNSName: &awsHostedZoneName,
+		},
+	)
+	if err != nil {
+		log.Println("error getting hosted zone id", err)
+	}
+
+	var awsHostedZoneId string
+
+	for _, zone := range hostedZones.HostedZones {
+
+		if *zone.Name == fmt.Sprintf(`%s%s`, awsHostedZoneName, ".") {
+
+			awsHostedZoneId = strings.Split(*zone.Id, "/")[2]
+
+			log.Printf(`found entry for user submitted domain %s, using hosted zone id %s`, awsHostedZoneName, awsHostedZoneId)
+			return awsHostedZoneId
+		}
+	}
+	log.Println("GetDNSInfoV2 (done)")
+	return awsHostedZoneId
+
 }
 
 // GetAccountInfo collect IAM and roles data. Collected data like (account id and ARN) are stored in viper.
