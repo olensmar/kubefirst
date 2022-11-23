@@ -4,11 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	gitConfig "github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/downloadManager"
+	"github.com/kubefirst/kubefirst/internal/progressPrinter"
 	"github.com/kubefirst/kubefirst/internal/reports"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
 	"github.com/kubefirst/kubefirst/pkg"
@@ -83,6 +88,102 @@ func runAws(cmd *cobra.Command, args []string) error {
 	}
 
 	// todo clone and detokenize repo
+
+	//* git clone and detokenize the gitops repository
+	if !viper.GetBool("kubefirst.clone-gitops-template.complete") {
+
+		//* step 1
+		pkg.InformUser("generating your new gitops repository", silentModeFlag)
+		progressPrinter.IncrementTracker("step-generate-gitops", 1)
+
+		gitopsRepoDir := fmt.Sprintf("%s/%s", config.K1FolderPath, "gitops")
+		gitClient.CloneRepo(gitopsTemplateUrlFlag, gitopsTemplateBranchFlag, gitopsRepoDir)
+		log.Println("gitops repository generation complete")
+		//* step 2
+		progressPrinter.IncrementTracker("step-generate-gitops", 1) // todo need to add these per step
+
+		//* step 3
+		// adjust content in repodir
+		opt := cp.Options{
+			Skip: func(src string) (bool, error) {
+				if strings.HasSuffix(src, ".git") {
+					return true, nil
+				} else if strings.Index(src, "/.terraform") > 0 {
+					return true, nil
+				}
+				//Add more stuff to be ignored here
+				return false, nil
+
+			},
+		}
+
+		//Tweak folder
+		os.RemoveAll(gitopsRepoDir + "/components")
+		os.RemoveAll(gitopsRepoDir + "/localhost")
+		os.RemoveAll(gitopsRepoDir + "/registry")
+		os.RemoveAll(gitopsRepoDir + "/validation")
+		os.RemoveAll(gitopsRepoDir + "/terraform")
+		os.RemoveAll(gitopsRepoDir + "/.gitignore")
+		os.RemoveAll(gitopsRepoDir + "/LICENSE")
+		os.RemoveAll(gitopsRepoDir + "/README.md")
+		os.RemoveAll(gitopsRepoDir + "/atlantis.yaml")
+		os.RemoveAll(gitopsRepoDir + "/logo.png")
+
+		driverContent := fmt.Sprintf("%s/%s-%s", gitopsRepoDir, viper.GetString("cloud-provider"), viper.GetString("git-provider"))
+		err := cp.Copy(driverContent, gitopsRepoDir, opt)
+		if err != nil {
+			log.Println("Error populating gitops with local setup:", err)
+			return err
+		}
+		os.RemoveAll(driverContent)
+
+		//* step 3
+		pkg.Detokenize(gitopsRepoDir)
+
+		//* step 4 add a new remote of the github user who's token we have
+		repo, err := git.PlainOpen(gitopsRepoDir)
+		if err != nil {
+			log.Print("error opening repo at:", gitopsRepoDir)
+		}
+		destinationGitopsRepoURL := viper.GetString("github.gitops-repo.url")
+		log.Printf("git remote add github %s", destinationGitopsRepoURL)
+		_, err = repo.CreateRemote(&gitConfig.RemoteConfig{
+			Name: "github",
+			URLs: []string{destinationGitopsRepoURL},
+		})
+		if err != nil {
+			log.Panicf("Error creating remote %s at: %s - %s", viper.GetString("git-provider"), destinationGitopsRepoURL, err)
+		}
+
+		//* step 5 commit newly detokenized content
+		w, _ := repo.Worktree()
+
+		log.Printf("committing detokenized %s content", "gitops")
+		status, err := w.Status()
+		if err != nil {
+			log.Println("error getting worktree status", err)
+		}
+
+		for file, _ := range status {
+			_, err = w.Add(file)
+			if err != nil {
+				log.Println("error getting worktree status", err)
+			}
+		}
+		w.Commit(fmt.Sprintf("[ci skip] committing detokenized %s content", destinationGitopsRepoURL), &git.CommitOptions{
+			Author: &object.Signature{
+				Name:  "kubefirst-bot",
+				Email: "kubefirst-bot@kubefirst.com",
+				When:  time.Now(),
+			},
+		}) // todo emit init telemetry end
+
+		viper.Set("kubefirst.clone-gitops-template.complete", true)
+		viper.WriteConfig()
+	} else {
+		log.Println("gitops repository generation complete - continuing")
+		log.Println("k1Config: kubefirst.clone-gitops-template.complete")
+	}
 
 	//!
 	// todo terraform apply github repositories (all)
