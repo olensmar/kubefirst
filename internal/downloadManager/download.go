@@ -196,6 +196,8 @@ func DownloadTools(config *configs.Config) error {
 
 		log.Printf("-> Helm version:\n\t%s\n\t%s\n", helmStdOut, helmStdErr)
 
+		os.Remove(helmDownloadTarGzPath)
+
 		wg.Done()
 
 		log.Println("Helm download finished")

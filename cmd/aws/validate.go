@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -37,7 +38,7 @@ func validateAws(cmd *cobra.Command, args []string) error {
 		log.Panic(err)
 	}
 
-	githubOwner, err := cmd.Flags().GetString("github-owner")
+	githubOwnerFlag, err := cmd.Flags().GetString("github-owner")
 	if err != nil {
 		log.Panic(err)
 	}
@@ -72,7 +73,7 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	}
 
 	if useTelemetryFlag {
-		if err := wrappers.SendSegmentIoTelemetry("", pkg.MetricInitStarted); err != nil {
+		if err := wrappers.SendSegmentIoTelemetry(hostedZoneNameFlag, pkg.MetricInitStarted); err != nil {
 			log.Println(err)
 		}
 	}
@@ -81,39 +82,25 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	// 	return err
 	// }
 
-	log.Println("git-provider flag value", gitProviderFlag)
-
 	httpClient := http.DefaultClient
 	githubToken := config.GithubToken
+	if len(githubToken) == 0 {
+		return errors.New("ephemeral tokens not supported for cloud installations, please set a GITHUB_TOKEN environment variable to continue\n https://docs.kubefirst.io/kubefirst/github/install.html#step-3-kubefirst-init")
+	}
 	gitHubService := services.NewGitHubService(httpClient)
 	gitHubHandler := handlers.NewGitHubHandler(gitHubService)
-	// get GitHub data to set user and owner based on the provided token
+	// get GitHub data to set user based on the provided token
+	log.Println("verifying github user")
 	githubUser, err := gitHubHandler.GetGitHubUser(githubToken)
 	if err != nil {
 		return err
 	}
-	// githubToken, err := wrappers.AuthenticateGitHubUserWrapper(config, gitHubHandler)
-	// if err != nil {
-	// 	return err
-	// }
+	log.Println("github user is: ", githubUser)
 
-	// // get GitHub data to set user and owner based on the provided token
-	// githubUser, err := gitHubHandler.GetGitHubUser(githubToken)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // todo need to check the token from the user to
-	// // todo see if its an admin (owner in the org)
-	// _, err := wrappers.CheckGithubOrganizationPermissionsWrapper(config.GithubToken, githubOwner, githubUser)
-	// if err != nil {
-	// 	log.Println("insufficient permissions for the authenicated user. please ensure the token is an Owner in the organization")
-	// 	return err
-	// }
-	err = gitHubHandler.CheckGithubOrganizationPermissions(githubToken, githubOwner, githubUser)
+	err = gitHubHandler.CheckGithubOrganizationPermissions(githubToken, githubOwnerFlag, githubUser)
 	if err != nil {
 		// is a log here valuable or duplicative?
-		// log.Println(fmt.Sprintf("insufficient permissions for the authenticated user (GITHUB_TOKEN).\n please make sure the token is an `Owner` in %s", githubOwner))
+		// log.Println(fmt.Sprintf("insufficient permissions for the authenticated user (GITHUB_TOKEN).\n please make sure the token is an `Owner` in %s", githubOwnerFlag))
 		return err
 	}
 
@@ -129,8 +116,8 @@ func validateAws(cmd *cobra.Command, args []string) error {
 		viper.Set("gitops-template.repo.url", gitopsTemplateUrlFlag)
 		viper.Set("git-provider", gitProviderFlag)
 		viper.Set("github.atlantis.webhook.secret", pkg.Random(20))
-		viper.Set("github.gitops-repo.url", fmt.Sprintf("https://github.com/%s/gitops.git", githubOwner))
-		viper.Set("github.owner", githubOwner)
+		viper.Set("github.gitops-repo.url", fmt.Sprintf("https://github.com/%s/gitops.git", githubOwnerFlag))
+		viper.Set("github.owner", githubOwnerFlag)
 		viper.Set("github.user", githubUser)
 		viper.Set("kubefirst.telemetry", useTelemetryFlag)
 		viper.Set("cluster-name", clusterNameFlag)

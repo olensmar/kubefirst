@@ -203,3 +203,7 @@ todo:
 - todo githubUser or githubUsername
 - prereq aws-iam-authenticator
 - docs updates
+- specify ~/.k1 directory for ci
+- github organization vs owner final
+- discuss log levels
+- KUBEFIRST_GITHUB_AUTH_TOKEN --> GITHUB_TOKEN
