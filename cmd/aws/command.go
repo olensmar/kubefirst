@@ -14,8 +14,8 @@ var (
 	gitProviderFlag          string
 	awsHostedZoneNameFlag    string
 	kbotPasswordFlag         string
-	kubefirstFolderPath      string
-	useTelemetryFlag         bool
+	// kubefirstFolderPath      string
+	useTelemetryFlag bool
 )
 
 func NewCommand() *cobra.Command {

@@ -108,8 +108,8 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	}
 	gitHubService := services.NewGitHubService(httpClient)
 	gitHubHandler := handlers.NewGitHubHandler(gitHubService)
-	// get GitHub data to set user based on the provided token
 
+	// get GitHub data to set user based on the provided token
 	log.Println("verifying github user")
 	githubUser, err := gitHubHandler.GetGitHubUser(githubToken)
 	if err != nil {
@@ -136,7 +136,6 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	log.Printf("aws hosted zone id %s", awsHostedZoneNameFlag)
 
 	log.Printf("creating state store bucket ")
-	// todo state store bucket clusterNameFlag
 	k1StateStoreBucketName, err := aws.CreateKubefirstStateStoreBucket(awsProfileFlag, awsRegion, clusterNameFlag)
 	if err != nil {
 		log.Printf("creating state store bucket ")
@@ -203,6 +202,12 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	} else {
 		log.Println("download dependencies `$HOME/.k1/tools` already done - continuing")
 		// log.Println("k1Config: kubefirst.dependency-download.complete") // todo is this valuable for debugging?
+	}
+
+	if useTelemetryFlag {
+		if err := wrappers.SendSegmentIoTelemetry(hostedZoneNameFlag, pkg.MetricInitCompleted); err != nil {
+			log.Println(err)
+		}
 	}
 
 	return nil
