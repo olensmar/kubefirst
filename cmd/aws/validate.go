@@ -182,6 +182,7 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	viper.Set("git-provider", gitProviderFlag)
 
 	viper.Set("github.atlantis.webhook.secret", pkg.Random(20))
+	viper.Set("github.atlantis.webhook.url", fmt.Sprintf("https://atlantis.%s/events", awsHostedZoneNameFlag))
 	viper.Set("github.repo.gitops.url", fmt.Sprintf("https://github.com/%s/gitops.git", githubOwnerFlag))
 	viper.Set("github.repo.gitops.giturl", fmt.Sprintf("%s/gitops.git", githubOwnerRootGitUrl))
 	viper.Set("github.repo.metaphor.url", fmt.Sprintf("https://github.com/%s/metaphor.git", githubOwnerFlag))
