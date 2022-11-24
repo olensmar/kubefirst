@@ -86,17 +86,17 @@ func runAws(cmd *cobra.Command, args []string) error {
 		log.Println("download dependencies `$HOME/.k1/tools` already done - continuing")
 	}
 	//* git clone and detokenize the gitops repository
-	if !viper.GetBool("kubefirst.clone-gitops-template.complete") {
+	if !viper.GetBool("kubefirst.clone.gitops-template.complete") {
 
 		//* step 1
 		pkg.InformUser("generating your new gitops repository", silentMode)
 
 		gitopsRepoDir := fmt.Sprintf("%s/%s", config.K1FolderPath, "gitops")
 		gitClient.CloneRepo(gitopsTemplateUrl, gitopsTemplateBranch, gitopsRepoDir)
-		log.Println("gitops repository generation complete")
+		log.Println("gitops repository creation complete")
 
 		//* step 2
-		// adjust content in repodir
+		// adjust content in gitops repository
 		opt := cp.Options{
 			Skip: func(src string) (bool, error) {
 				if strings.HasSuffix(src, ".git") {
@@ -110,7 +110,8 @@ func runAws(cmd *cobra.Command, args []string) error {
 			},
 		}
 
-		// clear out the root of `gitops-template`
+		// clear out the root of `gitops-template` once we move
+		// all the content we only remove the different root folders
 		os.RemoveAll(gitopsRepoDir + "/components")
 		os.RemoveAll(gitopsRepoDir + "/localhost")
 		os.RemoveAll(gitopsRepoDir + "/registry")
@@ -171,11 +172,10 @@ func runAws(cmd *cobra.Command, args []string) error {
 			},
 		}) // todo emit init telemetry end
 
-		viper.Set("kubefirst.clone-gitops-template.complete", true)
+		viper.Set("kubefirst.clone.gitops-template.complete", true)
 		viper.WriteConfig()
 	} else {
-		log.Println("gitops repository generation complete - continuing")
-		log.Println("k1Config: kubefirst.clone-gitops-template.complete")
+		log.Println("gitops repository generation already complete - continuing")
 	}
 
 	//!

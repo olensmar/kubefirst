@@ -169,7 +169,7 @@ func BucketRand(dryRun bool) (string, error) {
 	return "", nil
 }
 
-func CreateKubefirstStateStoreBucket(awsProfile, awsRegion, clusterName string) (string, error) {
+func CreateS3Bucket(awsProfile, awsRegion, clusterName, bucketName string) error {
 
 	// todo: use method approach to avoid new AWS client initializations
 	awsConfig, err := config.LoadDefaultConfig(
@@ -178,11 +178,9 @@ func CreateKubefirstStateStoreBucket(awsProfile, awsRegion, clusterName string) 
 		config.WithSharedConfigProfile(awsProfile),
 	)
 	if err != nil {
-		return "", err
+		return err
 	}
 	s3Client := s3.NewFromConfig(awsConfig)
-
-	bucketName := fmt.Sprintf("k1-state-store-%s", strings.ReplaceAll(autoname.Generate(), "_", "-"))
 
 	if awsConfig.Region == "us-east-1" {
 		_, err = s3Client.CreateBucket(context.TODO(), &s3.CreateBucketInput{
@@ -198,7 +196,7 @@ func CreateKubefirstStateStoreBucket(awsProfile, awsRegion, clusterName string) 
 	}
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	versionConfigInput := &s3.PutBucketVersioningInput{
@@ -210,10 +208,10 @@ func CreateKubefirstStateStoreBucket(awsProfile, awsRegion, clusterName string) 
 
 	_, err = s3Client.PutBucketVersioning(context.Background(), versionConfigInput)
 	if err != nil {
-		return "", err
+		return err
 	}
 	PutTagKubefirstOnBuckets(bucketName, clusterName)
-	return bucketName, nil
+	return nil
 }
 
 func GetAccountInfoV2(awsProfile, awsRegion string) (string, string, string, error) {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cip8/autoname"
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/aws"
 	"github.com/kubefirst/kubefirst/internal/handlers"
@@ -138,14 +139,15 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	awsHostedZoneId := aws.GetHostedZoneId(awsProfileFlag, awsRegion, awsHostedZoneNameFlag)
 	log.Printf("aws hosted zone id %s", awsHostedZoneId)
 
-	//! hack
-	k1StateStoreBucketName := "my-bucket"
-	// log.Printf("creating state store bucket ")
-	// k1StateStoreBucketName, err := aws.CreateKubefirstStateStoreBucket(awsProfileFlag, awsRegion, clusterNameFlag)
-	// if err != nil {
-	// 	log.Printf("creating state store bucket ")
-	// 	return err
-	// }
+	log.Printf("creating state store bucket ")
+	randomName := strings.ReplaceAll(autoname.Generate(), "_", "-")
+
+	kubefirstStateStoreBucketName := fmt.Sprintf("k1-state-store-%s", randomName)
+	err = aws.CreateS3Bucket(awsProfileFlag, awsRegion, clusterNameFlag, kubefirstStateStoreBucketName)
+	if err != nil {
+		log.Printf("creating state store bucket ")
+		return err
+	}
 
 	log.Println("creating an ssh key pair for your new cloud infrastructure")
 	sshPrivateKey, sshPublicKey, err := pkg.CreateSshKeyPair()
@@ -206,7 +208,8 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	viper.Set("kubefirst.bot.private-key", sshPrivateKey)
 	viper.Set("kubefirst.bot.public-key", sshPublicKey)
 	viper.Set("kubefirst.bot.user", "kbot")
-	viper.Set("kubefirst.state-store.bucket", k1StateStoreBucketName)
+	viper.Set("kubefirst.state-store.bucket", kubefirstStateStoreBucketName)
+	viper.Set("kubefirst.bucket.randomname", randomName)
 	viper.Set("kubefirst.telemetry", useTelemetryFlag)
 	viper.Set("cluster-name", clusterNameFlag)
 	viper.Set("vault.local.service", config.LocalVaultURL)
