@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kubefirst/kubefirst/configs"
 	"github.com/spf13/viper"
 )
 
@@ -39,14 +38,13 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 	if err != nil {
 		log.Panic(err)
 	}
-
 	if matched {
 		read, err := os.ReadFile(path)
 		if err != nil {
 			log.Panic(err)
 		}
 
-		config := configs.ReadConfig()
+		// config := configs.ReadConfig()
 
 		newContents := string(read)
 
@@ -72,6 +70,7 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		argoIngressUrl := fmt.Sprintf("https://argo.%s", awsHostedZoneName)
 		argoIngressUrlNoHttps := fmt.Sprintf("argo.%s", awsHostedZoneName)
 		gitopsUrlNoHttps := fmt.Sprintf("github.com/%s/gitops.git", viper.GetString("github.owner"))
+		gitopsUrl := fmt.Sprintf("https://github.com/%s/gitops.git", viper.GetString("github.owner"))
 		vaultIngressUrl := fmt.Sprintf("https://vault.%s", awsHostedZoneName)
 		vaultIngressUrlNoHttps := fmt.Sprintf("vault.%s", awsHostedZoneName)
 		vouchIngressUrl := fmt.Sprintf("https://vouch.%s", awsHostedZoneName)
@@ -137,9 +136,20 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		// viper.Set("kubefirst.telemetry", useTelemetryFlag)
 		// viper.Set("cluster-name", clusterNameFlag)
 		// viper.Set("vault.local.service", config.LocalVaultURL)
+
+		//! gitops-template readme
+
+		newContents = strings.Replace(newContents, "<GIT_PROVIDER>", "GitHub", -1)
+		newContents = strings.Replace(newContents, "<GIT_NAMESPACE>", "N/A", -1)
+		newContents = strings.Replace(newContents, "<GIT_DESCRIPTION>", "GitHub hosted git", -1)
+		newContents = strings.Replace(newContents, "<GIT_URL>", gitopsUrl, -1)
+		newContents = strings.Replace(newContents, "<GIT_RUNNER>", "GitHub Action Runner", -1)
+		newContents = strings.Replace(newContents, "<GIT_RUNNER_NS>", "github-runner", -1)
+		newContents = strings.Replace(newContents, "<GIT_RUNNER_DESCRIPTION>", "Self Hosted GitHub Action Runner", -1)
 		//! registry
 		newContents = strings.Replace(newContents, "<FULL_GITOPS_REPO_GIT_URL>", gitopsGitUrl, -1)
 		newContents = strings.Replace(newContents, "<FULL_GITOPS_REPO_URL_NO_HTTPS>", gitopsUrlNoHttps, -1)
+		newContents = strings.Replace(newContents, "<FULL_GITOPS_REPO_URL>", gitopsUrl, -1)
 		newContents = strings.Replace(newContents, "<AWS_DEFAULT_REGION>", awsRegion, -1)
 		newContents = strings.Replace(newContents, "<AWS_ACCOUNT_ID>", awsAccountId, -1)
 		newContents = strings.Replace(newContents, "<EMAIL_ADDRESS>", adminEmail, -1)
@@ -152,7 +162,8 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		newContents = strings.Replace(newContents, "<CHARTMUSEUM_STORAGE_BUCKET_NAME>", chartmuseumStorageBucketName, -1)
 		newContents = strings.Replace(newContents, "<CLUSTER_NAME>", clusterName, -1)
 		newContents = strings.Replace(newContents, "<AWS_HOSTED_ZONE_NAME>", awsHostedZoneName, -1)
-		newContents = strings.Replace(newContents, "<VAULT_INGRESS_URL>", vaultIngressUrlNoHttps, -1)
+		newContents = strings.Replace(newContents, "<VAULT_INGRESS_URL>", vaultIngressUrl, -1)
+		newContents = strings.Replace(newContents, "<VAULT_INGRESS_URL_NO_HTTPS>", vaultIngressUrlNoHttps, -1)
 
 		// todo consolidate this?
 		newContents = strings.Replace(newContents, "<METAPHOR_DEVELOPMENT_INGRESS_URL_NO_HTTPS>", metaphorDevelopmentIngressUrlNoHttps, -1)
@@ -191,14 +202,11 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		newContents = strings.Replace(newContents, "<ATLANTIS_INGRESS_URL>", atlantisIngressUrl, -1)
 		newContents = strings.Replace(newContents, "<GITLAB_INGRESS_URL>", gitlabIngressUrl, -1)
 		newContents = strings.Replace(newContents, "<KUBEFIRST_STATE_STORE_BUCKET>", kubefirstStateStoreBucket, -1)
-		// <ARGOCD_INGRESS_URL>
-		// <ARGO_WORKFLOWS_INGRESS_URL_NO_HTTPS>
-		// <GITHUB_HOST>
-		// <GITHUB_USER>
-		// <AWS_DEFAULT_REGION>
-		// <GITHUB_OWNER>
-		// <AWS_ACCOUNT_ID>
-		// <AWS_DEFAULT_REGION>
+
+		err = os.WriteFile(path, []byte(newContents), 0)
+		if err != nil {
+			log.Panic(err)
+		}
 	}
 
 	return nil

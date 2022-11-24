@@ -131,14 +131,14 @@ func runAws(cmd *cobra.Command, args []string) error {
 		os.RemoveAll(driverContent)
 
 		//* step 3
-		pkg.Detokenize(gitopsRepoDir)
+		pkg.DetokenizeV2(gitopsRepoDir)
 
 		//* step 4 add a new remote of the github user who's token we have
 		repo, err := git.PlainOpen(gitopsRepoDir)
 		if err != nil {
 			log.Print("error opening repo at:", gitopsRepoDir)
 		}
-		destinationGitopsRepoURL := viper.GetString("github.gitops-repo.url")
+		destinationGitopsRepoURL := viper.GetString("github.repo.gitops.giturl")
 		log.Printf("git remote add github %s", destinationGitopsRepoURL)
 		_, err = repo.CreateRemote(&gitConfig.RemoteConfig{
 			Name: "github",
