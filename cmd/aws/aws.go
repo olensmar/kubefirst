@@ -30,11 +30,11 @@ func runAws(cmd *cobra.Command, args []string) error {
 	config := configs.ReadConfig()
 
 	//* confirm with user to continue
-	// var userInput string
-	// printConfirmationScreen()
-	// go counter()
-	// fmt.Println("to proceed, type 'yes' any other answer will exit")
-	// fmt.Scanln(&userInput)
+	var userInput string
+	printConfirmationScreen()
+	go counter()
+	fmt.Println("to proceed, type 'yes' any other answer will exit")
+	fmt.Scanln(&userInput)
 	// if userInput != "yes" {
 	// 	os.Exit(1)
 	// }
@@ -289,27 +289,6 @@ func runAws(cmd *cobra.Command, args []string) error {
 		log.Println("already created github terraform resources")
 	}
 
-	executionControl = viper.GetBool("vault.kms-key-detokenize.pushed")
-	// create github teams in the org and repositories
-	if !executionControl {
-		pkg.InformUser("Creating github resources with terraform", silentMode)
-
-		tfEntrypoint := config.GitOpsRepoPath + "/terraform/github"
-		err := terraform.InitApplyAutoApprove(dryRun, tfEntrypoint)
-		if err != nil {
-			log.Printf("error executing terraform apply %s", tfEntrypoint)
-			return err
-		}
-
-		viper.Set("terraform.github.apply.complete", true)
-		viper.WriteConfig()
-
-		pkg.InformUser(fmt.Sprintf("Created github repos in github.com/%s", viper.GetString("github.owner")), silentMode)
-		// progressPrinter.IncrementTracker("step-github", 1)
-	} else {
-		log.Println("already created github terraform resources")
-	}
-
 	// todo restore ssl... also automatically backup ssl at the end
 	// informUser("Attempt to recycle certs", globalFlags.SilentMode)
 	// restoreSSLCmd.RunE(cmd, args)
@@ -328,19 +307,20 @@ func runAws(cmd *cobra.Command, args []string) error {
 		Namespace:    pkg.HelmRepoNamespace,
 		ChartVersion: pkg.HelmRepoChartVersion,
 	}
-	// todo helm install argocd
+	//* helm repo add argocd
 	executionControl = viper.GetBool("argocd.helm.repo.updated")
 	if !executionControl {
 		pkg.InformUser(fmt.Sprintf("helm repo add %s %s and helm repo update", helmRepo.RepoName, helmRepo.RepoURL), silentMode)
 		helm.AddRepoAndUpdateRepo(dryRun, helmRepo)
 	}
 
-	// helm install argocd
+	//* helm install argocd
 	executionControl = viper.GetBool("argocd.helm.install.complete")
 	if !executionControl {
 		pkg.InformUser(fmt.Sprintf("helm install %s and wait", helmRepo.RepoName), silentMode)
 		helm.Install(dryRun, helmRepo)
 	}
+	log.Println("hell yes")
 
 	// todo wait for argocd to be ready
 

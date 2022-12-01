@@ -81,7 +81,7 @@ func DeployMetaphorGithub(globalFlags flagset.GlobalFlags) error {
 		log.Println("error renaming metaphor-repos.md to metaphor-repos.tf", err)
 	}
 	gitClient.PushLocalRepoUpdates(githubHost, githubOwner, "gitops", "github")
-	terraform.InitApplyAutoApprove(globalFlags.DryRun, tfEntrypoint, "terraform.github.apply.complete") // todo look at all outside cmd/aws
+	terraform.InitApplyAutoApprove(globalFlags.DryRun, tfEntrypoint) // todo look at all outside cmd/aws
 
 	repos := [3]string{"metaphor", "metaphor-go", "metaphor-frontend"}
 	for _, element := range repos {
