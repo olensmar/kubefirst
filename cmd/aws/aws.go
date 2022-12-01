@@ -29,14 +29,13 @@ func runAws(cmd *cobra.Command, args []string) error {
 	//* confirm with user to continue
 	// var userInput string
 	// printConfirmationScreen()
-	// todo skip to confirmation value if we get to here and they exit here
-	// otherwise we need to clean and restart / reset
 	// go counter()
 	// fmt.Println("to proceed, type 'yes' any other answer will exit")
 	// fmt.Scanln(&userInput)
 	// if userInput != "yes" {
 	// 	os.Exit(1)
 	// }
+	//* confirm with user to continue
 	silentMode := false
 	// viper.GetString("admin-email")
 	// viper.GetString("aws.account-id")
@@ -239,8 +238,8 @@ func printConfirmationScreen() {
 	createKubefirstSummary.WriteString(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor-go.url")))
 
 	createKubefirstSummary.WriteString("\n\nTemplate Repositories URL's:\n\n")
-	createKubefirstSummary.WriteString(fmt.Sprintf("  %s\n", viper.GetString("gitops-template.repo.url")))
-	createKubefirstSummary.WriteString(fmt.Sprintf("    branch:  %s\n", viper.GetString("gitops-template.repo.branch")))
+	createKubefirstSummary.WriteString(fmt.Sprintf("  %s\n", viper.GetString("template-repo.gitops.url")))
+	createKubefirstSummary.WriteString(fmt.Sprintf("    branch:  %s\n", viper.GetString("template-repo.gitops.branch")))
 	createKubefirstSummary.WriteString(fmt.Sprintf("  %s\n", viper.GetString("template-repo.metaphor.url")))
 	createKubefirstSummary.WriteString(fmt.Sprintf("    branch:  %s\n", viper.GetString("template-repo.metaphor.branch")))
 	createKubefirstSummary.WriteString(fmt.Sprintf("  %s\n", viper.GetString("template-repo.metaphor-frontend.url")))

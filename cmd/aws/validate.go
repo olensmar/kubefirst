@@ -209,7 +209,7 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	viper.Set("kubefirst.bot.public-key", sshPublicKey)
 	viper.Set("kubefirst.bot.user", "kbot")
 	viper.Set("kubefirst.state-store.bucket", kubefirstStateStoreBucketName)
-	viper.Set("kubefirst.bucket.randomname", randomName)
+	viper.Set("kubefirst.bucket.random-name", randomName)
 	viper.Set("kubefirst.telemetry", useTelemetryFlag)
 	viper.Set("cluster-name", clusterNameFlag)
 	viper.Set("vault.local.service", config.LocalVaultURL)
