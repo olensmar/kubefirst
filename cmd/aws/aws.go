@@ -30,11 +30,11 @@ func runAws(cmd *cobra.Command, args []string) error {
 	config := configs.ReadConfig()
 
 	//* confirm with user to continue
-	var userInput string
-	printConfirmationScreen()
-	go counter()
-	fmt.Println("to proceed, type 'yes' any other answer will exit")
-	fmt.Scanln(&userInput)
+	// var userInput string
+	// printConfirmationScreen()
+	// go counter()
+	// fmt.Println("to proceed, type 'yes' any other answer will exit")
+	// fmt.Scanln(&userInput)
 	fmt.Println("proceeding with cluster create")
 	// if userInput != "yes" {
 	// 	os.Exit(1)
@@ -67,7 +67,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		viper.Set("kubefirst.dependency-download.complete", true)
 		viper.WriteConfig()
 	} else {
-		log.Println("download dependencies `$HOME/.k1/tools` already done - continuing")
+		log.Println("already completed download of dependencies to `$HOME/.k1/tools` - continuing")
 	}
 	//* git clone and detokenize the gitops repository
 	if !viper.GetBool("template-repo.gitops.cloned") {
@@ -159,7 +159,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		viper.Set("template-repo.gitops.cloned", true)
 		viper.WriteConfig()
 	} else {
-		log.Println("gitops repository generation already complete - continuing")
+		log.Println("already completed gitops repo generation - continuing")
 	}
 
 	//* terraform apply github repositories
@@ -186,7 +186,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		log.Printf(fmt.Sprintf("     %s", viper.GetString("github.repo.metaphor-go.url")))
 		// progressPrinter.IncrementTracker("step-github", 1)
 	} else {
-		log.Println("already created github terraform resources")
+		log.Println("already completed github terraform resources - continuing")
 	}
 
 	//* terraform apply aws cloud resources
@@ -208,7 +208,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		pkg.InformUser(fmt.Sprintf("Created aws cloud resources for kubefirst cluster"), silentMode)
 		// progressPrinter.IncrementTracker("step-github", 1)
 	} else {
-		log.Println("already created aws terraform resources")
+		log.Println("already completed aws terraform resources - continuing")
 	}
 
 	//* terraform output kms key from terraform/aws and detokenize, commit, push
@@ -287,7 +287,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		pkg.InformUser(fmt.Sprintf("Created github repos in github.com/%s", viper.GetString("github.owner")), silentMode)
 		// progressPrinter.IncrementTracker("step-github", 1)
 	} else {
-		log.Println("already created github terraform resources")
+		log.Println("already completed gitops repository push - continuing")
 	}
 
 	// todo restore ssl... also automatically backup ssl at the end
