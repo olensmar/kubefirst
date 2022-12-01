@@ -9,14 +9,14 @@ import (
 	"github.com/jedib0t/go-pretty/v6/progress"
 )
 
-//ActionTracker Struct used to manage tracker object
+// ActionTracker Struct used to manage tracker object
 // This object may evolve with more properties in th future
 // when we have more fancier UI tools/styles.
 type ActionTracker struct {
 	Tracker *progress.Tracker
 }
 
-//progressPrinter General state object
+// progressPrinter General state object
 type progressPrinter struct {
 	Trackers map[string]*ActionTracker
 	pw       progress.Writer
@@ -25,7 +25,7 @@ type progressPrinter struct {
 var instance *progressPrinter
 var once sync.Once
 
-//GetInstance  Function used to initialize the component once in the execution.
+// GetInstance  Function used to initialize the component once in the execution.
 // Usually called from the `cmd`  `init` func or as early as possible on the execution.
 //
 //	import ("github.com/kubefirst/nebulous/pkg")
@@ -73,7 +73,7 @@ func SetupProgress(numTrackers int, silentMode bool) {
 	go instance.pw.Render()
 }
 
-//CreateTracker Initialise a tracker object
+// CreateTracker Initialise a tracker object
 //
 // Prefer `AddTracker` to create trackers, due to simplicity.
 func CreateTracker(title string, total int64) *progress.Tracker {
@@ -107,12 +107,12 @@ func AddTracker(key string, title string, total int64) string {
 	return key
 }
 
-//TotalOfTrackers Returns the number of initialized Trackers
+// TotalOfTrackers Returns the number of initialized Trackers
 func TotalOfTrackers() int {
 	return len(instance.Trackers)
 }
 
-//IncrementTracker Increments a tracker based on the provided key
+// IncrementTracker Increments a tracker based on the provided key
 // if key is unkown it will error out.
 // Sample of usage:
 //

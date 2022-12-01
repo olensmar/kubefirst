@@ -73,13 +73,13 @@ type Config struct {
 	LocalMetaphorGoStaging    string
 	LocalMetaphorFrontStaging string
 
-	LocalMetaphorProd      string
-	LocalMetaphorGoProd    string
-	LocalMetaphorFrontProd string
-	TerraformAwsEntrypointPath string
+	LocalMetaphorProd             string
+	LocalMetaphorGoProd           string
+	LocalMetaphorFrontProd        string
+	TerraformAwsEntrypointPath    string
 	TerraformGithubEntrypointPath string
-	TerraformUsersEntrypointPath string
-	TerraformVaultEntrypointPath string
+	TerraformUsersEntrypointPath  string
+	TerraformVaultEntrypointPath  string
 
 	GithubToken string `env:"GITHUB_TOKEN"`
 }
@@ -104,14 +104,13 @@ func ReadConfig() *Config {
 	}
 	config.KubefirstConfigFileName = ".kubefirst"
 	config.KubefirstConfigFilePath = fmt.Sprintf("%s/%s", homePath, config.KubefirstConfigFileName)
-	
+
 	config.GitOpsRepoPath = fmt.Sprintf("%s/gitops", config.K1FolderPath)
 
-	config.TerraformAwsEntrypointPath := fmt.Sprintf("%s/terraform/aws", config.GitOpsRepoPath)
-	config.TerraformGithubEntrypointPath := fmt.Sprintf("%s/terraform/github", config.GitOpsRepoPath)
-	config.TerraformUsersEntrypointPath := fmt.Sprintf("%s/terraform/users", config.GitOpsRepoPath)
-	config.TerraformVaultEntrypointPath := fmt.Sprintf("%s/terraform/vault", config.GitOpsRepoPath)
-
+	config.TerraformAwsEntrypointPath = fmt.Sprintf("%s/terraform/aws", config.GitOpsRepoPath)
+	config.TerraformGithubEntrypointPath = fmt.Sprintf("%s/terraform/github", config.GitOpsRepoPath)
+	config.TerraformUsersEntrypointPath = fmt.Sprintf("%s/terraform/users", config.GitOpsRepoPath)
+	config.TerraformVaultEntrypointPath = fmt.Sprintf("%s/terraform/vault", config.GitOpsRepoPath)
 
 	config.LocalOs = runtime.GOOS
 	config.LocalArchitecture = runtime.GOARCH
@@ -119,7 +118,7 @@ func ReadConfig() *Config {
 	config.KubectlClientPath = fmt.Sprintf("%s/tools/kubectl", config.K1FolderPath)
 	config.KubeConfigPath = fmt.Sprintf("%s/gitops/terraform/base/kubeconfig", config.K1FolderPath)
 	config.KubeConfigFolder = fmt.Sprintf("%s/gitops/terraform/base", config.K1FolderPath)
-	
+
 	config.NgrokClientPath = fmt.Sprintf("%s/tools/ngrok", config.K1FolderPath)
 	config.TerraformClientPath = fmt.Sprintf("%s/tools/terraform", config.K1FolderPath)
 	config.HelmClientPath = fmt.Sprintf("%s/tools/helm", config.K1FolderPath)

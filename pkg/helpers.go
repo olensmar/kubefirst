@@ -491,7 +491,8 @@ func AwaitHostNTimes(url string, times int, gracePeriod time.Duration) {
 // file, newContent is the new content you want to replace.
 //
 // Example:
-//   err := replaceFileContent(vaultMainFile, "http://127.0.0.1:9000", "http://minio.minio.svc.cluster.local:9000")
+//
+//	err := replaceFileContent(vaultMainFile, "http://127.0.0.1:9000", "http://minio.minio.svc.cluster.local:9000")
 func replaceFileContent(filPath string, oldContent string, newContent string) error {
 
 	file, err := os.ReadFile(filPath)

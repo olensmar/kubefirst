@@ -306,14 +306,12 @@ func DestroyECRTerraform(skipECRTerraform bool) {
 	}
 }
 
-func initActionAutoApprove(dryRun bool, tfAction, tfEntrypoint string) {
+func initActionAutoApprove(dryRun bool, tfAction, tfEntrypoint, kubefirstConfigPath string) {
 
 	config := configs.ReadConfig()
 	tfEntrypointSplit := strings.Split(tfEntrypoint, "/")
 	kubefirstConfigProperty := tfEntrypointSplit[len(tfEntrypointSplit)-1]
 	log.Printf("Entered Init%s%sTerraform", strings.Title(tfAction), strings.Title(kubefirstConfigProperty))
-
-	kubefirstConfigPath := fmt.Sprintf("terraform.%s.%s.complete", kubefirstConfigProperty, tfAction)
 
 	log.Printf("Executing Init%s%sTerraform", strings.Title(tfAction), strings.Title(kubefirstConfigProperty))
 	if dryRun {

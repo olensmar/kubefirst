@@ -192,7 +192,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		pkg.InformUser("Creating github resources with terraform", silentMode)
 
 		tfEntrypoint := config.GitOpsRepoPath + "/terraform/github"
-		terraform.InitApplyAutoApprove(dryRun, tfEntrypoint)
+		terraform.InitApplyAutoApprove(dryRun, tfEntrypoint, "terraform.github.apply.complete")
 
 		pkg.InformUser(fmt.Sprintf("Created gitops Repo in github.com/%s", viper.GetString("github.owner")), silentMode)
 		// progressPrinter.IncrementTracker("step-github", 1)
