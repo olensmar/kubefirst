@@ -421,14 +421,14 @@ func InitMigrateApplyAutoApprove(dryRun bool, tfEntrypoint string) {
 	initAndMigrateActionAutoApprove(dryRun, tfAction, tfEntrypoint)
 }
 
-func InitApplyAutoApprove(dryRun bool, tfEntrypoint string) {
+func InitApplyAutoApprove(dryRun bool, tfEntrypoint, kubefirstConfigPath string) {
 	tfAction := "apply"
-	initActionAutoApprove(dryRun, tfAction, tfEntrypoint)
+	initActionAutoApprove(dryRun, tfAction, tfEntrypoint, kubefirstConfigPath)
 }
 
-func InitDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
+func InitDestroyAutoApprove(dryRun bool, tfEntrypoint, kubefirstConfigPath string) {
 	tfAction := "destroy"
-	initActionAutoApprove(dryRun, tfAction, tfEntrypoint)
+	initActionAutoApprove(dryRun, tfAction, tfEntrypoint, kubefirstConfigPath)
 }
 
 func InitReconfigureDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
