@@ -11,9 +11,11 @@ import (
 	"github.com/go-git/go-git/v5"
 	gitConfig "github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/downloadManager"
 	"github.com/kubefirst/kubefirst/internal/gitClient"
+	"github.com/kubefirst/kubefirst/internal/helm"
 	"github.com/kubefirst/kubefirst/internal/reports"
 	"github.com/kubefirst/kubefirst/internal/terraform"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
@@ -39,31 +41,10 @@ func runAws(cmd *cobra.Command, args []string) error {
 	//* confirm with user to continue
 	silentMode := false
 	dryRun := false
-	// viper.GetString("admin-email")
-	// viper.GetString("aws.account-id")
-	// viper.GetString("aws.iam-arn")
-	// viper.GetString("aws.hosted-zone-id")
 	awsHostedZone := viper.GetString("aws.hosted-zone-name")
-	// viper.GetString("aws.profile")
-	// viper.GetString("aws.region")
-	// viper.GetString("argocd.local.service")
-	// viper.GetString("cloud-provider")
 	gitopsTemplateBranch := viper.GetString("template-repo.gitops.branch")
 	gitopsTemplateUrl := viper.GetString("template-repo.gitops.url")
-	// viper.GetString("git-provider")
-	// viper.GetString("github.atlantis.webhook.secret")
-	// githubGitopsRepoUrl := viper.GetString("github.gitops-repo.url")
-	// viper.GetString("github.owner")
-	// viper.GetString("github.user")
-	// viper.GetString("kubefirst.bot.password")
-	// viper.GetString("kubefirst.bot.private-key")
-	// viper.GetString("kubefirst.bot.public-key")
-	// viper.GetString("kubefirst.bot.user")
-	// viper.GetString("kubefirst.state-store.bucket")
-	// viper.GetString("kubefirst.telemetry")
-	// viper.GetString("cluster-name")
-	// viper.GetString("vault.local.service")
-	// config := configs.ReadConfig()
+
 	//* emit cluster install started
 	if useTelemetryFlag {
 		if err := wrappers.SendSegmentIoTelemetry(awsHostedZone, pkg.MetricMgmtClusterInstallStarted); err != nil {
@@ -87,7 +68,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		log.Println("download dependencies `$HOME/.k1/tools` already done - continuing")
 	}
 	//* git clone and detokenize the gitops repository
-	if !viper.GetBool("kubefirst.clone.gitops-template.complete") {
+	if !viper.GetBool("template-repo.gitops.cloned") {
 
 		//* step 1
 		pkg.InformUser("generating your new gitops repository", silentMode)
@@ -132,7 +113,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 		}
 		os.RemoveAll(driverContent)
 
-		//* step 3
+		//* step 3 -- gitClient.CommitAndPush -- warning origin is github
 		pkg.DetokenizeV2(gitopsRepoDir)
 
 		//* step 4 add a new remote of the github user who's token we have
@@ -165,7 +146,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 				log.Println("error getting worktree status", err)
 			}
 		}
-		w.Commit(fmt.Sprintf("[ci skip] committing detokenized %s content", destinationGitopsRepoURL), &git.CommitOptions{
+		w.Commit(fmt.Sprintf("[ci skip] committing initial detokenized %s content", destinationGitopsRepoURL), &git.CommitOptions{
 			Author: &object.Signature{
 				Name:  "kubefirst-bot",
 				Email: "kubefirst-bot@kubefirst.com",
@@ -179,40 +160,187 @@ func runAws(cmd *cobra.Command, args []string) error {
 		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor-frontend.url")))
 		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor-go.url")))
 
-		viper.Set("kubefirst.clone.gitops-template.complete", true)
+		viper.Set("template-repo.gitops.cloned", true)
 		viper.WriteConfig()
 	} else {
 		log.Println("gitops repository generation already complete - continuing")
 	}
 
-	// todo terraform apply github repositories (all)
+	//* terraform apply github repositories
 	executionControl := viper.GetBool("terraform.github.apply.complete")
-	// create github teams in the org and gitops repo
+	// create github teams in the org and repositories
 	if !executionControl {
 		pkg.InformUser("Creating github resources with terraform", silentMode)
 
-		tfEntrypoint := config.GitOpsRepoPath + "/terraform/github"
-		terraform.InitApplyAutoApprove(dryRun, tfEntrypoint, "terraform.github.apply.complete")
+		tfEntrypoint := config.TerraformGithubEntrypointPath
+		err := terraform.InitApplyAutoApprove(dryRun, tfEntrypoint)
+		if err != nil {
+			log.Printf("error executing terraform apply %s", tfEntrypoint)
+			return err
+		}
 
-		pkg.InformUser(fmt.Sprintf("Created gitops Repo in github.com/%s", viper.GetString("github.owner")), silentMode)
+		viper.Set("terraform.github.apply.complete", true)
+		viper.WriteConfig()
+
+		pkg.InformUser(fmt.Sprintf("Created github repos in github.com/%s", viper.GetString("github.owner")), silentMode)
 		// progressPrinter.IncrementTracker("step-github", 1)
 	} else {
 		log.Println("already created github terraform resources")
 	}
 
-	//!
-	// todo clone and detoknize repos and push to remote
+	//* terraform apply aws cloud resources
+	executionControl = viper.GetBool("terraform.aws.apply.complete")
+	// create github teams in the org and repositories
+	if !executionControl {
+		pkg.InformUser("Creating aws resources with terraform", silentMode)
 
-	// todo terraform apply base - include additional s3 buckets for better management
+		tfEntrypoint := config.TerraformAwsEntrypointPath
+		err := terraform.InitApplyAutoApprove(dryRun, tfEntrypoint)
+		if err != nil {
+			log.Printf("error executing terraform apply %s", tfEntrypoint)
+			return err
+		}
 
-	// todo detoknize kms key id and re-push local content to remote
+		viper.Set("terraform.aws.apply.complete", true)
+		viper.WriteConfig()
+
+		pkg.InformUser(fmt.Sprintf("Created aws cloud resources for kubefirst cluster"), silentMode)
+		// progressPrinter.IncrementTracker("step-github", 1)
+	} else {
+		log.Println("already created aws terraform resources")
+	}
+
+	//* terraform output kms key from terraform/aws and detokenize, commit, push
+	executionControl = viper.GetBool("template-repo.gitops.pushed")
+	// create github teams in the org and repositories
+	if !executionControl {
+		pkg.InformUser("Adding KMS ID to gitops repository", silentMode)
+
+		//* get kms key id terraform.OutputSingleValue
+		tfEntrypoint := config.TerraformAwsEntrypointPath
+		tfOutputName := "vault_unseal_kms_key"
+		kmsKeyId, err := terraform.OutputSingleValue(dryRun, tfEntrypoint, tfOutputName)
+		if err != nil {
+			log.Printf("error getting terraform output %s value %s", tfEntrypoint, tfOutputName)
+			return err
+		}
+		log.Printf("terraform output: %s = %s", tfOutputName, kmsKeyId)
+
+		viper.Set("terraform.aws.outputs.kms-key.id", kmsKeyId)
+		viper.WriteConfig()
+
+		//* step 3 -- gitClient.CommitAndPush -- warning origin is github
+		//* detokenize the kms key id for vault and dynamodb table name
+		pkg.DetokenizeV2(config.GitOpsRepoPath)
+
+		//* step 4 add a new remote of the github user who's token we have
+		repo, err := git.PlainOpen(config.GitOpsRepoPath)
+		if err != nil {
+			log.Print("error opening repo at:", config.GitOpsRepoPath)
+		}
+		//* step 5 commit newly detokenized content
+		w, _ := repo.Worktree()
+
+		log.Printf("committing detokenized %s content", "gitops")
+		status, err := w.Status()
+		if err != nil {
+			log.Println("error getting worktree status", err)
+		}
+
+		for file, _ := range status {
+			_, err = w.Add(file)
+			if err != nil {
+				log.Println("error getting worktree status", err)
+			}
+		}
+		w.Commit("[ci skip] committing detokenized kms key id", &git.CommitOptions{
+			Author: &object.Signature{
+				Name:  "kubefirst-bot",
+				Email: "kubefirst-bot@kubefirst.com",
+				When:  time.Now(),
+			},
+		})
+
+		token := os.Getenv("GITHUB_TOKEN")
+		if len(token) == 0 {
+			log.Println("no GITHUB_TOKEN provided, unable to push to github")
+		}
+
+		err = repo.Push(&git.PushOptions{
+			RemoteName: "github", // todo parameter
+			Auth: &http.BasicAuth{
+				Username: "kubefirst-bot",
+				Password: token,
+			},
+		})
+		if err != nil {
+			log.Panicf("error pushing to remote github: %s", err)
+		}
+		log.Println("successfully pushed detokenized gitops content to github/", viper.GetString("github.owner"))
+		viper.Set("github.gitops.hydrated", true)
+		viper.WriteConfig()
+
+		viper.Set("template-repo.gitops.pushed", true)
+		viper.WriteConfig()
+
+		pkg.InformUser(fmt.Sprintf("Created github repos in github.com/%s", viper.GetString("github.owner")), silentMode)
+		// progressPrinter.IncrementTracker("step-github", 1)
+	} else {
+		log.Println("already created github terraform resources")
+	}
+
+	executionControl = viper.GetBool("vault.kms-key-detokenize.pushed")
+	// create github teams in the org and repositories
+	if !executionControl {
+		pkg.InformUser("Creating github resources with terraform", silentMode)
+
+		tfEntrypoint := config.GitOpsRepoPath + "/terraform/github"
+		err := terraform.InitApplyAutoApprove(dryRun, tfEntrypoint)
+		if err != nil {
+			log.Printf("error executing terraform apply %s", tfEntrypoint)
+			return err
+		}
+
+		viper.Set("terraform.github.apply.complete", true)
+		viper.WriteConfig()
+
+		pkg.InformUser(fmt.Sprintf("Created github repos in github.com/%s", viper.GetString("github.owner")), silentMode)
+		// progressPrinter.IncrementTracker("step-github", 1)
+	} else {
+		log.Println("already created github terraform resources")
+	}
 
 	// todo restore ssl... also automatically backup ssl at the end
+	// informUser("Attempt to recycle certs", globalFlags.SilentMode)
+	// restoreSSLCmd.RunE(cmd, args)
 
 	// todo create initial argocd repository (this is the connection to argocd as a 'repo') destinationGitopsRepoUrl
 	//* investigate - is this doing the same thing as pkg.CreateSSHKey where it writes a file?
+	// gitopsRepo := fmt.Sprintf("git@github.com:%s/gitops.git", viper.GetString("github.owner"))
+	// argocd.CreateInitialArgoCDRepository(gitopsRepo)
 
+	// helm add argo repository && update
+	// todo move to config.?
+	helmRepo := helm.HelmRepo{
+		RepoName:     pkg.HelmRepoName,
+		RepoURL:      pkg.HelmRepoURL,
+		ChartName:    pkg.HelmRepoChartName,
+		Namespace:    pkg.HelmRepoNamespace,
+		ChartVersion: pkg.HelmRepoChartVersion,
+	}
 	// todo helm install argocd
+	executionControl = viper.GetBool("argocd.helm.repo.updated")
+	if !executionControl {
+		pkg.InformUser(fmt.Sprintf("helm repo add %s %s and helm repo update", helmRepo.RepoName, helmRepo.RepoURL), silentMode)
+		helm.AddRepoAndUpdateRepo(dryRun, helmRepo)
+	}
+
+	// helm install argocd
+	executionControl = viper.GetBool("argocd.helm.install.complete")
+	if !executionControl {
+		pkg.InformUser(fmt.Sprintf("helm install %s and wait", helmRepo.RepoName), silentMode)
+		helm.Install(dryRun, helmRepo)
+	}
 
 	// todo wait for argocd to be ready
 
@@ -220,9 +348,6 @@ func runAws(cmd *cobra.Command, args []string) error {
 
 	//! stop here before continuing
 	// todo apply argocd registry
-
-	// todo set argocd credentials
-	// todo set argocd credentials
 
 	return nil
 

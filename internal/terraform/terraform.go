@@ -17,7 +17,7 @@ import (
 )
 
 func terraformConfig(terraformEntryPoint string) map[string]string {
-
+	config := configs.ReadConfig()
 	envs := map[string]string{}
 
 	if viper.GetString("cloud") == "aws" {
@@ -29,16 +29,24 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 	}
 
 	switch terraformEntryPoint {
-	case "base":
-		envs["TF_VAR_aws_account_id"] = viper.GetString("aws.accountid")
-		envs["TF_VAR_hosted_zone_name"] = viper.GetString("aws.hostedzonename")
+	case config.TerraformAwsEntrypointPath:
+		envs["TF_VAR_aws_account_id"] = viper.GetString("aws.account-id")
+		envs["TF_VAR_hosted_zone_name"] = viper.GetString("aws.hosted-zone-name")
+		envs["TF_VAR_aws_region"] = viper.GetString("aws.region")
 
-		nodes_spot := viper.GetBool("aws.nodes_spot")
+		nodes_spot := viper.GetBool("aws.nodes_spot") // todo fix _ -> -
 		if nodes_spot {
 			envs["TF_VAR_lifecycle_nodes"] = "SPOT"
 		}
+
+		nodes_graviton := viper.GetBool("aws.nodes_graviton")
+		if nodes_graviton {
+			envs["TF_VAR_ami_type"] = "AL2_ARM_64"
+			envs["TF_VAR_instance_type"] = "t4g.medium"
+		}
+
 		return envs
-	case "vault":
+	case config.TerraformVaultEntrypointPath:
 
 		if viper.GetString("cloud") == pkg.CloudK3d {
 			envs["TF_VAR_email_address"] = viper.GetString("adminemail")
@@ -79,7 +87,7 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 	case "gitlab":
 		fmt.Println("gitlab")
 		return envs
-	case "github":
+	case config.TerraformGithubEntrypointPath:
 		envs["GITHUB_TOKEN"] = os.Getenv("KUBEFIRST_GITHUB_AUTH_TOKEN")
 		envs["GITHUB_OWNER"] = viper.GetString("github.owner")
 		envs["TF_VAR_atlantis_repo_webhook_secret"] = viper.GetString("github.atlantis.webhook.secret")
@@ -95,7 +103,7 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 		envs["VAULT_TOKEN"] = viper.GetString("vault.token")
 
 		return envs
-	case "users":
+	case config.TerraformUsersEntrypointPath:
 		envs["VAULT_TOKEN"] = viper.GetString("vault.token")
 		envs["VAULT_ADDR"] = viper.GetString("vault.local.service")
 		envs["GITHUB_TOKEN"] = os.Getenv("KUBEFIRST_GITHUB_AUTH_TOKEN")
@@ -306,38 +314,39 @@ func DestroyECRTerraform(skipECRTerraform bool) {
 	}
 }
 
-func initActionAutoApprove(dryRun bool, tfAction, tfEntrypoint, kubefirstConfigPath string) {
+func initActionAutoApprove(dryRun bool, tfAction, tfEntrypoint string) error {
 
 	config := configs.ReadConfig()
-	tfEntrypointSplit := strings.Split(tfEntrypoint, "/")
-	kubefirstConfigProperty := tfEntrypointSplit[len(tfEntrypointSplit)-1]
-	log.Printf("Entered Init%s%sTerraform", strings.Title(tfAction), strings.Title(kubefirstConfigProperty))
+	log.Printf("initActionAutoApprove - action: %s entrypoint: %s", tfAction, tfEntrypoint)
 
-	log.Printf("Executing Init%s%sTerraform", strings.Title(tfAction), strings.Title(kubefirstConfigProperty))
 	if dryRun {
-		log.Printf("[#99] Dry-run mode, Init%s%sTerraform skipped", strings.Title(tfAction), strings.Title(kubefirstConfigProperty))
+		log.Printf("[#99] Dry-run mode, action: %s entrypoint: %s", tfAction, tfEntrypoint)
+		return nil
 	}
 
-	envs := terraformConfig(kubefirstConfigProperty)
+	envs := terraformConfig(tfEntrypoint)
+	//* debug
 	log.Println("tf env vars: ", envs)
 
 	err := os.Chdir(tfEntrypoint)
 	if err != nil {
-		log.Panic("error: could not change to directory " + tfEntrypoint)
+		log.Println("error: could not change to directory " + tfEntrypoint)
+		return err
 	}
 	err = pkg.ExecShellWithVars(envs, config.TerraformClientPath, "init")
 	if err != nil {
-		log.Panicf("error: terraform init for %s failed %s", tfEntrypoint, err)
+		log.Printf("error: terraform init for %s failed: %s", tfEntrypoint, err)
+		return err
 	}
 
 	err = pkg.ExecShellWithVars(envs, config.TerraformClientPath, tfAction, "-auto-approve")
 	if err != nil {
-		log.Panicf("error: terraform %s -auto-approve for %s failed %s", tfAction, tfEntrypoint, err)
+		log.Printf("error: terraform %s -auto-approve for %s failed %s", tfAction, tfEntrypoint, err)
+		return err
 	}
 	os.RemoveAll(fmt.Sprintf("%s/.terraform/", tfEntrypoint))
 	os.Remove(fmt.Sprintf("%s/.terraform.lock.hcl", tfEntrypoint))
-	viper.Set(kubefirstConfigPath, true)
-	viper.WriteConfig()
+	return nil
 }
 
 func initAndMigrateActionAutoApprove(dryRun bool, tfAction, tfEntrypoint string) {
@@ -419,14 +428,18 @@ func InitMigrateApplyAutoApprove(dryRun bool, tfEntrypoint string) {
 	initAndMigrateActionAutoApprove(dryRun, tfAction, tfEntrypoint)
 }
 
-func InitApplyAutoApprove(dryRun bool, tfEntrypoint, kubefirstConfigPath string) {
+func InitApplyAutoApprove(dryRun bool, tfEntrypoint string) error {
 	tfAction := "apply"
-	initActionAutoApprove(dryRun, tfAction, tfEntrypoint, kubefirstConfigPath)
+	err := initActionAutoApprove(dryRun, tfAction, tfEntrypoint)
+	if err != nil {
+		log.Printf("InitApplyAutoApprove - action: %s entrypoint: %s", tfAction, tfEntrypoint)
+	}
+	return err
 }
 
-func InitDestroyAutoApprove(dryRun bool, tfEntrypoint, kubefirstConfigPath string) {
+func InitDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
 	tfAction := "destroy"
-	initActionAutoApprove(dryRun, tfAction, tfEntrypoint, kubefirstConfigPath)
+	initActionAutoApprove(dryRun, tfAction, tfEntrypoint)
 }
 
 func InitReconfigureDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
@@ -435,10 +448,10 @@ func InitReconfigureDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
 }
 
 // todo need to write something that outputs -json type and can get multiple values
-func OutputSingleValue(dryRun bool, directory, tfEntrypoint, outputName string) {
+func OutputSingleValue(dryRun bool, tfEntrypoint, outputName string) (string, error) {
 
 	config := configs.ReadConfig()
-	os.Chdir(directory)
+	os.Chdir(tfEntrypoint)
 
 	var tfOutput bytes.Buffer
 	tfOutputCmd := exec.Command(config.TerraformClientPath, "output", outputName)
@@ -446,10 +459,10 @@ func OutputSingleValue(dryRun bool, directory, tfEntrypoint, outputName string) 
 	tfOutputCmd.Stderr = os.Stderr
 	err := tfOutputCmd.Run()
 	if err != nil {
-		fmt.Println("failed to call tfOutputCmd.Run(): ", err)
+		fmt.Println("error: terraform.OutputSingleValue: ", err)
+		return "", err
 	}
-
-	log.Println("tfOutput is: ", tfOutput.String())
+	return tfOutput.String(), nil
 }
 
 // ApplyUsersTerraform load environment variables into the host based on the git provider, change directory to the

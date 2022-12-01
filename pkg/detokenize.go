@@ -56,7 +56,8 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		awsHostedZoneName := viper.GetString("aws.hosted-zone-name")
 		atlantisWebhookUrl := viper.GetString("github.atlantis.webhook.url")
 		adminEmail := viper.GetString("admin-email")
-		chartmuseumStorageBucketName := "chartmuseum-bucket-name" // todo blocking
+		chartmuseumArtifactBucket := fmt.Sprintf("k1-chartmuseum-artifact-%s", viper.GetString("kubefirst.bucket.random-name"))
+		argoArtifactBucket := fmt.Sprintf("k1-argo--artifact-%s", viper.GetString("kubefirst.bucket.random-name"))
 		clusterName := viper.GetString("cluster-name")
 		githubHost := viper.GetString("github.host")
 		githubOwner := viper.GetString("github.owner")
@@ -159,11 +160,17 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		newContents = strings.Replace(newContents, "<KUBEFIRST_INGRESS_URL_NO_HTTPS>", kubefirstIngressUrl, -1)
 		newContents = strings.Replace(newContents, "<CHARTMUSEUM_INGRESS_URL>", chartmuseumIngressUrl, -1)
 		newContents = strings.Replace(newContents, "<CHARTMUSEUM_INGRESS_URL_NO_HTTPS>", chartmuseumIngressUrlNoHttps, -1)
-		newContents = strings.Replace(newContents, "<CHARTMUSEUM_STORAGE_BUCKET_NAME>", chartmuseumStorageBucketName, -1)
+		newContents = strings.Replace(newContents, "<CHARTMUSEUM_ARTIFACT_BUCKET>", chartmuseumArtifactBucket, -1)
+		newContents = strings.Replace(newContents, "<ARGO_ARTIFACT_BUCKET>", argoArtifactBucket, -1)
 		newContents = strings.Replace(newContents, "<CLUSTER_NAME>", clusterName, -1)
 		newContents = strings.Replace(newContents, "<AWS_HOSTED_ZONE_NAME>", awsHostedZoneName, -1)
 		newContents = strings.Replace(newContents, "<VAULT_INGRESS_URL>", vaultIngressUrl, -1)
 		newContents = strings.Replace(newContents, "<VAULT_INGRESS_URL_NO_HTTPS>", vaultIngressUrlNoHttps, -1)
+
+		if viper.GetString("terraform.aws.outputs.kms-key.id") != "" {
+			awsKmsKeyId := viper.GetString("terraform.aws.outputs.kms-key.id")
+			newContents = strings.Replace(newContents, "<AWS_KMS_KEY_ID>", awsKmsKeyId, -1)
+		}
 
 		// todo consolidate this?
 		newContents = strings.Replace(newContents, "<METAPHOR_DEVELOPMENT_INGRESS_URL_NO_HTTPS>", metaphorDevelopmentIngressUrlNoHttps, -1)
