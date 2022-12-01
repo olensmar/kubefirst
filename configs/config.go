@@ -111,13 +111,14 @@ func ReadConfig() *Config {
 	config.TerraformGithubEntrypointPath = fmt.Sprintf("%s/terraform/github", config.GitOpsRepoPath)
 	config.TerraformUsersEntrypointPath = fmt.Sprintf("%s/terraform/users", config.GitOpsRepoPath)
 	config.TerraformVaultEntrypointPath = fmt.Sprintf("%s/terraform/vault", config.GitOpsRepoPath)
+	config.KubeConfigFolder = fmt.Sprintf("%s/terraform/aws", config.GitOpsRepoPath)
+	config.KubeConfigPath = fmt.Sprintf("%s/terraform/aws/kubeconfig", config.GitOpsRepoPath)
 
+	//! havent used anything below this
 	config.LocalOs = runtime.GOOS
 	config.LocalArchitecture = runtime.GOARCH
 
 	config.KubectlClientPath = fmt.Sprintf("%s/tools/kubectl", config.K1FolderPath)
-	config.KubeConfigPath = fmt.Sprintf("%s/gitops/terraform/base/kubeconfig", config.K1FolderPath)
-	config.KubeConfigFolder = fmt.Sprintf("%s/gitops/terraform/base", config.K1FolderPath)
 
 	config.NgrokClientPath = fmt.Sprintf("%s/tools/ngrok", config.K1FolderPath)
 	config.TerraformClientPath = fmt.Sprintf("%s/tools/terraform", config.K1FolderPath)

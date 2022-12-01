@@ -57,7 +57,7 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		atlantisWebhookUrl := viper.GetString("github.atlantis.webhook.url")
 		adminEmail := viper.GetString("admin-email")
 		chartmuseumArtifactBucket := fmt.Sprintf("k1-chartmuseum-artifact-%s", viper.GetString("kubefirst.bucket.random-name"))
-		argoArtifactBucket := fmt.Sprintf("k1-argo--artifact-%s", viper.GetString("kubefirst.bucket.random-name"))
+		argoArtifactBucket := fmt.Sprintf("k1-argo-artifact-%s", viper.GetString("kubefirst.bucket.random-name"))
 		clusterName := viper.GetString("cluster-name")
 		githubHost := viper.GetString("github.host")
 		githubOwner := viper.GetString("github.owner")

@@ -35,10 +35,12 @@ func runAws(cmd *cobra.Command, args []string) error {
 	go counter()
 	fmt.Println("to proceed, type 'yes' any other answer will exit")
 	fmt.Scanln(&userInput)
+	fmt.Println("proceeding with cluster create")
 	// if userInput != "yes" {
 	// 	os.Exit(1)
 	// }
 	//* confirm with user to continue
+
 	silentMode := false
 	dryRun := false
 	awsHostedZone := viper.GetString("aws.hosted-zone-name")
@@ -154,12 +156,6 @@ func runAws(cmd *cobra.Command, args []string) error {
 			},
 		}) // todo emit init telemetry end
 
-		log.Println("created repositories:")
-		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.gitops.url")))
-		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor.url")))
-		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor-frontend.url")))
-		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor-go.url")))
-
 		viper.Set("template-repo.gitops.cloned", true)
 		viper.WriteConfig()
 	} else {
@@ -170,7 +166,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 	executionControl := viper.GetBool("terraform.github.apply.complete")
 	// create github teams in the org and repositories
 	if !executionControl {
-		pkg.InformUser("Creating github resources with terraform", silentMode)
+		pkg.InformUser("creating github resources with terraform", silentMode)
 
 		tfEntrypoint := config.TerraformGithubEntrypointPath
 		err := terraform.InitApplyAutoApprove(dryRun, tfEntrypoint)
@@ -182,7 +178,12 @@ func runAws(cmd *cobra.Command, args []string) error {
 		viper.Set("terraform.github.apply.complete", true)
 		viper.WriteConfig()
 
-		pkg.InformUser(fmt.Sprintf("Created github repos in github.com/%s", viper.GetString("github.owner")), silentMode)
+		pkg.InformUser(fmt.Sprintf("created github repositories in github.com/%s", viper.GetString("github.owner")), silentMode)
+		log.Println(fmt.Sprintf("created github repositories in https://github.com/%s", viper.GetString("github.owner")))
+		log.Printf(fmt.Sprintf("     %s", viper.GetString("github.repo.gitops.url")))
+		log.Printf(fmt.Sprintf("     %s", viper.GetString("github.repo.metaphor.url")))
+		log.Printf(fmt.Sprintf("     %s", viper.GetString("github.repo.metaphor-frontend.url")))
+		log.Printf(fmt.Sprintf("     %s", viper.GetString("github.repo.metaphor-go.url")))
 		// progressPrinter.IncrementTracker("step-github", 1)
 	} else {
 		log.Println("already created github terraform resources")
@@ -214,14 +215,14 @@ func runAws(cmd *cobra.Command, args []string) error {
 	executionControl = viper.GetBool("template-repo.gitops.pushed")
 	// create github teams in the org and repositories
 	if !executionControl {
-		pkg.InformUser("Adding KMS ID to gitops repository", silentMode)
+		pkg.InformUser("adding kms id to gitops repository", silentMode)
 
 		//* get kms key id terraform.OutputSingleValue
 		tfEntrypoint := config.TerraformAwsEntrypointPath
 		tfOutputName := "vault_unseal_kms_key"
 		kmsKeyId, err := terraform.OutputSingleValue(dryRun, tfEntrypoint, tfOutputName)
 		if err != nil {
-			log.Printf("error getting terraform output %s value %s", tfEntrypoint, tfOutputName)
+			log.Printf("error getting terraform output %s value %s", tfOutputName, kmsKeyId)
 			return err
 		}
 		log.Printf("terraform output: %s = %s", tfOutputName, kmsKeyId)

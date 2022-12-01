@@ -219,7 +219,7 @@ func validateAws(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	log.Println("validation and kubefirst cli environment is complete")
+	log.Println("validation and kubefirst cli environment check is complete")
 
 	if useTelemetryFlag {
 		if err := wrappers.SendSegmentIoTelemetry(awsHostedZoneNameFlag, pkg.MetricInitCompleted); err != nil {

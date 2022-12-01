@@ -73,7 +73,7 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 		envs["TF_VAR_aws_account_id"] = viper.GetString("aws.accountid")
 		envs["TF_VAR_aws_region"] = viper.GetString("aws.region")
 		envs["TF_VAR_email_address"] = viper.GetString("adminemail")
-		envs["TF_VAR_github_token"] = os.Getenv("KUBEFIRST_GITHUB_AUTH_TOKEN")
+		envs["TF_VAR_github_token"] = os.Getenv("GITHUB_TOKEN")
 		envs["TF_VAR_hosted_zone_id"] = viper.GetString("aws.hostedzoneid") //# TODO: are we using this?
 		envs["TF_VAR_hosted_zone_name"] = viper.GetString("aws.hostedzonename")
 		envs["TF_VAR_vault_token"] = viper.GetString("vault.token")
@@ -88,15 +88,15 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 		fmt.Println("gitlab")
 		return envs
 	case config.TerraformGithubEntrypointPath:
-		envs["GITHUB_TOKEN"] = os.Getenv("KUBEFIRST_GITHUB_AUTH_TOKEN")
+		envs["GITHUB_TOKEN"] = os.Getenv("GITHUB_TOKEN")
 		envs["GITHUB_OWNER"] = viper.GetString("github.owner")
 		envs["TF_VAR_atlantis_repo_webhook_secret"] = viper.GetString("github.atlantis.webhook.secret")
 		envs["TF_VAR_atlantis_repo_webhook_url"] = viper.GetString("github.atlantis.webhook.url")
-		envs["TF_VAR_kubefirst_bot_ssh_public_key"] = viper.GetString("botpublickey")
+		envs["TF_VAR_kubefirst_bot_ssh_public_key"] = viper.GetString("kubefirst.bot.public-key")
 
 		// todo: add validation for localhost
-		envs["TF_VAR_email_address"] = viper.GetString("adminemail")
-		envs["TF_VAR_github_token"] = os.Getenv("KUBEFIRST_GITHUB_AUTH_TOKEN")
+		envs["TF_VAR_email_address"] = viper.GetString("admin-email")
+		envs["TF_VAR_github_token"] = os.Getenv("GITHUB_TOKEN")
 		envs["TF_VAR_vault_addr"] = viper.GetString("vault.local.service")
 		envs["TF_VAR_vault_token"] = viper.GetString("vault.token")
 		envs["VAULT_ADDR"] = viper.GetString("vault.local.service")
@@ -106,7 +106,7 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 	case config.TerraformUsersEntrypointPath:
 		envs["VAULT_TOKEN"] = viper.GetString("vault.token")
 		envs["VAULT_ADDR"] = viper.GetString("vault.local.service")
-		envs["GITHUB_TOKEN"] = os.Getenv("KUBEFIRST_GITHUB_AUTH_TOKEN")
+		envs["GITHUB_TOKEN"] = os.Getenv("GITHUB_TOKEN")
 		envs["GITHUB_OWNER"] = viper.GetString("github.owner")
 		return envs
 	}
@@ -432,14 +432,18 @@ func InitApplyAutoApprove(dryRun bool, tfEntrypoint string) error {
 	tfAction := "apply"
 	err := initActionAutoApprove(dryRun, tfAction, tfEntrypoint)
 	if err != nil {
-		log.Printf("InitApplyAutoApprove - action: %s entrypoint: %s", tfAction, tfEntrypoint)
+		return err
 	}
-	return err
+	return nil
 }
 
-func InitDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
+func InitDestroyAutoApprove(dryRun bool, tfEntrypoint string) error {
 	tfAction := "destroy"
-	initActionAutoApprove(dryRun, tfAction, tfEntrypoint)
+	err := initActionAutoApprove(dryRun, tfAction, tfEntrypoint)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func InitReconfigureDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
@@ -452,17 +456,24 @@ func OutputSingleValue(dryRun bool, tfEntrypoint, outputName string) (string, er
 
 	config := configs.ReadConfig()
 	os.Chdir(tfEntrypoint)
+	envs := terraformConfig(tfEntrypoint)
+
+	err := pkg.ExecShellWithVars(envs, config.TerraformClientPath, "init")
+	if err != nil {
+		log.Panic(fmt.Sprintf("error: terraform init failed %v", err))
+	}
 
 	var tfOutput bytes.Buffer
 	tfOutputCmd := exec.Command(config.TerraformClientPath, "output", outputName)
 	tfOutputCmd.Stdout = &tfOutput
 	tfOutputCmd.Stderr = os.Stderr
-	err := tfOutputCmd.Run()
+	err = tfOutputCmd.Run()
 	if err != nil {
 		fmt.Println("error: terraform.OutputSingleValue: ", err)
 		return "", err
 	}
-	return tfOutput.String(), nil
+	outputValue := tfOutput.String()
+	return outputValue, nil
 }
 
 // ApplyUsersTerraform load environment variables into the host based on the git provider, change directory to the

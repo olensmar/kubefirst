@@ -700,7 +700,7 @@ func PutTagKubefirstOnBuckets(bucketName string, clusterName string) {
 		log.Println(err)
 		return
 	}
-	log.Printf("Bucket: %s tagged successfully", bucketName)
+	log.Printf("bucket: %s tagged successfully", bucketName)
 }
 
 func DestroyBucketObjectsAndVersions(bucket, region string) error {

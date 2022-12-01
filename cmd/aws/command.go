@@ -49,7 +49,18 @@ func NewCommand() *cobra.Command {
 	awsCmd.SilenceUsage = true
 
 	// wire up new commands
-	// awsCmd.AddCommand(NewCommandConnect())
+	awsCmd.AddCommand(Destroy())
 
 	return awsCmd
+}
+
+func Destroy() *cobra.Command {
+	connectCmd := &cobra.Command{
+		Use:   "destroy",
+		Short: "destroy aws cloud",
+		Long:  "todo",
+		RunE:  runDestroy,
+	}
+
+	return connectCmd
 }

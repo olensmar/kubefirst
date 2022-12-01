@@ -209,4 +209,7 @@ todo:
 - KUBEFIRST_GITHUB_AUTH_TOKEN --> GITHUB_TOKEN
 - add trackers back in
 - check to see if the repositories exist
-- 
+- bucket tagging fails if the AWS_PROFILE=starter variable isnt present, look into it
+- .terraform* isnt git ignored. added ignore but need to check this with something not cloud related
+  - the branch im on is `domain-refactor` so i had to git branch -m domain-refactor main 
+  - git push github main
