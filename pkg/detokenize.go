@@ -70,6 +70,7 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		argocdIngressUrlNoHttps := fmt.Sprintf("argocd.%s", awsHostedZoneName)
 		argoIngressUrl := fmt.Sprintf("https://argo.%s", awsHostedZoneName)
 		argoIngressUrlNoHttps := fmt.Sprintf("argo.%s", awsHostedZoneName)
+		awsVaultKmsKeyAlias := fmt.Sprintf("vault_%s", clusterName)
 		gitopsUrlNoHttps := fmt.Sprintf("github.com/%s/gitops.git", viper.GetString("github.owner"))
 		gitopsUrl := fmt.Sprintf("https://github.com/%s/gitops.git", viper.GetString("github.owner"))
 		vaultIngressUrl := fmt.Sprintf("https://vault.%s", awsHostedZoneName)
@@ -166,10 +167,11 @@ func DetokenizeDirectoryV2(path string, fi os.FileInfo, err error) error {
 		newContents = strings.Replace(newContents, "<AWS_HOSTED_ZONE_NAME>", awsHostedZoneName, -1)
 		newContents = strings.Replace(newContents, "<VAULT_INGRESS_URL>", vaultIngressUrl, -1)
 		newContents = strings.Replace(newContents, "<VAULT_INGRESS_URL_NO_HTTPS>", vaultIngressUrlNoHttps, -1)
+		newContents = strings.Replace(newContents, "<AWS_VAULT_KMS_KEY_ALIAS>", awsVaultKmsKeyAlias, -1)
 
 		if viper.GetString("terraform.aws.outputs.kms-key.id") != "" {
-			awsKmsKeyId := viper.GetString("terraform.aws.outputs.kms-key.id")
-			newContents = strings.Replace(newContents, "<AWS_KMS_KEY_ID>", awsKmsKeyId, -1)
+			awsVaultKmsKeyId := viper.GetString("terraform.aws.outputs.kms-key.id")
+			newContents = strings.Replace(newContents, "<AWS_VAULT_KMS_KEY_ID>", awsVaultKmsKeyId, -1)
 		}
 
 		// todo consolidate this?
