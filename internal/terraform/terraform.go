@@ -452,6 +452,8 @@ func InitReconfigureDestroyAutoApprove(dryRun bool, tfEntrypoint string) {
 }
 
 // todo need to write something that outputs -json type and can get multiple values
+// todo get this value from an aws sdk call instead of terraform output to reduce potential error
+// todo we can detokenize <VAULT_KMS_KEY_ALIAS>
 func OutputSingleValue(dryRun bool, tfEntrypoint, outputName string) (string, error) {
 
 	config := configs.ReadConfig()
@@ -473,6 +475,9 @@ func OutputSingleValue(dryRun bool, tfEntrypoint, outputName string) (string, er
 		return "", err
 	}
 	outputValue := tfOutput.String()
+	log.Println(outputValue)
+	os.RemoveAll(fmt.Sprintf("%s/.terraform/", tfEntrypoint))
+	os.Remove(fmt.Sprintf("%s/.terraform.lock.hcl", tfEntrypoint))
 	return outputValue, nil
 }
 

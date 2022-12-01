@@ -129,6 +129,8 @@ func validateAws(cmd *cobra.Command, args []string) error {
 	viper.Set("github.repo.metaphor.url", fmt.Sprintf("https://github.com/%s/metaphor.git", githubOwnerFlag))
 	viper.Set("github.repo.metaphor-frontend.url", fmt.Sprintf("https://github.com/%s/metaphor-frontend.git", githubOwnerFlag))
 	viper.Set("github.repo.metaphor-go.url", fmt.Sprintf("https://github.com/%s/metaphor-go.git", githubOwnerFlag))
+	githubOwnerRootGitUrl := fmt.Sprintf("git@github.com:%s", githubOwnerFlag)
+	viper.Set("github.repo.gitops.giturl", fmt.Sprintf("%s/gitops.git", githubOwnerRootGitUrl))
 	viper.WriteConfig()
 
 	//* github checks
@@ -202,7 +204,7 @@ func validateAws(cmd *cobra.Command, args []string) error {
 		log.Println("already completed aws checks - continuing")
 	}
 
-	executionControl = viper.GetBool("kubefirst.checks.kbot.complete")
+	executionControl = viper.GetBool("kubefirst.checks.bot.complete")
 	if !executionControl {
 		log.Println("creating an ssh key pair for your new cloud infrastructure")
 		sshPrivateKey, sshPublicKey, err := pkg.CreateSshKeyPair()
@@ -213,13 +215,11 @@ func validateAws(cmd *cobra.Command, args []string) error {
 			kbotPassword = pkg.Random(20)
 		}
 		log.Println("ssh key pair creation complete")
-		githubOwnerRootGitUrl := fmt.Sprintf("git@github.com:%s", githubOwnerFlag)
 		viper.Set("kubefirst.bot.password", kbotPassword)
 		viper.Set("kubefirst.bot.private-key", sshPrivateKey)
 		viper.Set("kubefirst.bot.public-key", sshPublicKey)
 		viper.Set("kubefirst.bot.user", "kbot")
-		viper.Set("github.repo.gitops.giturl", fmt.Sprintf("%s/gitops.git", githubOwnerRootGitUrl))
-		viper.Set("kubefirst.checks.kbot.complete", true)
+		viper.Set("kubefirst.checks.bot.complete", true)
 		viper.WriteConfig()
 		// todo, is this a hangover from initial gitlab? do we need this?
 		log.Println("creating argocd-init-values.yaml for initial install")

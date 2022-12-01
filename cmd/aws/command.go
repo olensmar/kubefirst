@@ -55,12 +55,12 @@ func NewCommand() *cobra.Command {
 }
 
 func Destroy() *cobra.Command {
-	connectCmd := &cobra.Command{
+	destroyCmd := &cobra.Command{
 		Use:   "destroy",
 		Short: "destroy aws cloud",
 		Long:  "todo",
 		RunE:  runDestroy,
 	}
 
-	return connectCmd
+	return destroyCmd
 }

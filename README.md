@@ -213,3 +213,4 @@ todo:
 - .terraform* isnt git ignored. added ignore but need to check this with something not cloud related
   - the branch im on is `domain-refactor` so i had to git branch -m domain-refactor main 
   - git push github main
+- with fix of quoted kms key id we need to add quotes back to the gitops-template file tha detokenizes
