@@ -15,6 +15,7 @@ import (
 	"github.com/kubefirst/kubefirst/internal/downloadManager"
 	"github.com/kubefirst/kubefirst/internal/gitClient"
 	"github.com/kubefirst/kubefirst/internal/reports"
+	"github.com/kubefirst/kubefirst/internal/terraform"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
 	"github.com/kubefirst/kubefirst/pkg"
 	cp "github.com/otiai10/copy"
@@ -37,6 +38,7 @@ func runAws(cmd *cobra.Command, args []string) error {
 	// }
 	//* confirm with user to continue
 	silentMode := false
+	dryRun := false
 	// viper.GetString("admin-email")
 	// viper.GetString("aws.account-id")
 	// viper.GetString("aws.iam-arn")
@@ -171,15 +173,34 @@ func runAws(cmd *cobra.Command, args []string) error {
 			},
 		}) // todo emit init telemetry end
 
+		log.Println("created repositories:")
+		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.gitops.url")))
+		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor.url")))
+		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor-frontend.url")))
+		log.Println(fmt.Sprintf("  %s\n", viper.GetString("github.repo.metaphor-go.url")))
+
 		viper.Set("kubefirst.clone.gitops-template.complete", true)
 		viper.WriteConfig()
 	} else {
 		log.Println("gitops repository generation already complete - continuing")
 	}
 
-	//!
 	// todo terraform apply github repositories (all)
+	executionControl := viper.GetBool("terraform.github.apply.complete")
+	// create github teams in the org and gitops repo
+	if !executionControl {
+		pkg.InformUser("Creating github resources with terraform", silentMode)
 
+		tfEntrypoint := config.GitOpsRepoPath + "/terraform/github"
+		terraform.InitApplyAutoApprove(dryRun, tfEntrypoint)
+
+		pkg.InformUser(fmt.Sprintf("Created gitops Repo in github.com/%s", viper.GetString("github.owner")), silentMode)
+		// progressPrinter.IncrementTracker("step-github", 1)
+	} else {
+		log.Println("already created github terraform resources")
+	}
+
+	//!
 	// todo clone and detoknize repos and push to remote
 
 	// todo terraform apply base - include additional s3 buckets for better management

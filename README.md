@@ -208,3 +208,5 @@ todo:
 - discuss log levels
 - KUBEFIRST_GITHUB_AUTH_TOKEN --> GITHUB_TOKEN
 - add trackers back in
+- check to see if the repositories exist
+- 
