@@ -31,6 +31,7 @@ var (
 	dryRun         bool
 	silentMode     bool
 	enableConsole  bool
+	skipMetaphor   bool
 	gitOpsBranch   string
 	gitOpsRepo     string
 	metaphorBranch string
@@ -53,6 +54,7 @@ func NewCommand() *cobra.Command {
 	localCmd.Flags().BoolVar(&dryRun, "dry-run", false, "set to dry-run mode, no changes done on cloud provider selected")
 	localCmd.Flags().BoolVar(&silentMode, "silent", false, "enable silentMode mode will make the UI return less content to the screen")
 	localCmd.Flags().BoolVar(&enableConsole, "enable-console", true, "If hand-off screen will be presented on a browser UI")
+	localCmd.Flags().BoolVar(&skipMetaphor, "skip-metaphor", false, "If metaphor application suite must be skiped to deploy")
 
 	// todo: get it from GH token , use it for console
 	localCmd.Flags().StringVar(&adminEmail, "admin-email", "", "the email address for the administrator as well as for lets-encrypt certificate emails")
@@ -367,9 +369,11 @@ func runLocal(cmd *cobra.Command, args []string) error {
 	} else {
 		log.Println("already resolved host for chartmuseum, continuing")
 	}
+	var err error
 
 	pkg.InformUser("Deploying metaphor applications", silentMode)
-	err := metaphor.DeployMetaphorGithubLocal(dryRun, githubOwner, metaphorBranch, "")
+	//this function is doing more than just handling metaphor apps, it seems to touche gitops
+	err = metaphor.DeployMetaphorGithubLocal(dryRun, skipMetaphor, githubOwner, metaphorBranch, "")
 	if err != nil {
 		pkg.InformUser("Error deploy metaphor applications", silentMode)
 		log.Println("Error running deployMetaphorCmd")

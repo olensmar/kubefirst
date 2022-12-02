@@ -43,13 +43,16 @@ func runPostLocal(cmd *cobra.Command, args []string) error {
 		close(minioConsoleStopChannel)
 		close(kubefirstConsoleStopChannel)
 		close(AtlantisStopChannel)
-		close(MetaphorFrontendDevelopmentStopChannel)
-		close(MetaphorGoDevelopmentStopChannel)
-		close(MetaphorDevelopmentStopChannel)
+		if !skipMetaphor {
+			close(MetaphorFrontendDevelopmentStopChannel)
+			close(MetaphorGoDevelopmentStopChannel)
+			close(MetaphorDevelopmentStopChannel)
+		}
 		log.Println("leaving port-forward command, port forwards are now closed")
 	}()
 
 	err := k8s.OpenPortForwardForLocal(
+		skipMetaphor,
 		vaultStopChannel,
 		argoStopChannel,
 		argoCDStopChannel,

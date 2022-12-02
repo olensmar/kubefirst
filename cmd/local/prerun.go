@@ -2,6 +2,10 @@ package local
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/dustin/go-humanize"
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/addon"
@@ -14,9 +18,6 @@ import (
 	"github.com/kubefirst/kubefirst/pkg"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
-	"net/http"
-	"time"
 )
 
 func validateLocal(cmd *cobra.Command, args []string) error {
@@ -58,7 +59,7 @@ func validateLocal(cmd *cobra.Command, args []string) error {
 		log.Println("loading tag values for built version")
 		log.Printf("Kubefirst version %q, tags %q", configs.K1Version, config.K3dVersion)
 		// in order to make the fallback tags work, set gitops branch as empty
-		gitOpsBranch = ""
+		//gitOpsBranch = ""
 		templateTag = configs.K1Version
 		viper.Set("template.tag", templateTag)
 	}
@@ -82,7 +83,9 @@ func validateLocal(cmd *cobra.Command, args []string) error {
 	addon.AddAddon("github")
 	addon.AddAddon("k3d")
 	// used for letsencrypt notifications and the gitlab root account
-
+	if !skipMetaphor {
+		addon.AddAddon("metaphor")
+	}
 	viper.Set("github.atlantis.webhook.secret", pkg.Random(20))
 
 	err = viper.WriteConfig()

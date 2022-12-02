@@ -18,6 +18,7 @@ import (
 // Every port forward that is open, is open in a Go routine, the function exists when all the (wg.Add(x)) x Go
 // routines are done.
 func OpenPortForwardForLocal(
+	skipMetaphor bool,
 	vaultStopChannel chan struct{},
 	argoStopChannel chan struct{},
 	argoCDStopChannel chan struct{},
@@ -82,23 +83,25 @@ func OpenPortForwardForLocal(
 		wg.Done()
 	}()
 
-	// MetaphorFrontendDevelopment
-	go func() {
-		OpenPortForwardServiceWrapper(pkg.MetaphorFrontendDevelopmentServiceName, pkg.MetaphorFrontendDevelopmentNamespace, pkg.MetaphorFrontendDevelopmentServicePort, pkg.MetaphorFrontendDevelopmentServiceLocalPort, MetaphorFrontendDevelopmentStopChannel)
-		wg.Done()
-	}()
+	if !skipMetaphor {
+		// MetaphorFrontendDevelopment
+		go func() {
+			OpenPortForwardServiceWrapper(pkg.MetaphorFrontendDevelopmentServiceName, pkg.MetaphorFrontendDevelopmentNamespace, pkg.MetaphorFrontendDevelopmentServicePort, pkg.MetaphorFrontendDevelopmentServiceLocalPort, MetaphorFrontendDevelopmentStopChannel)
+			wg.Done()
+		}()
 
-	// MetaphorGoDevelopment
-	go func() {
-		OpenPortForwardServiceWrapper(pkg.MetaphorGoDevelopmentServiceName, pkg.MetaphorGoDevelopmentNamespace, pkg.MetaphorGoDevelopmentServicePort, pkg.MetaphorGoDevelopmentServiceLocalPort, MetaphorGoDevelopmentStopChannel)
-		wg.Done()
-	}()
+		// MetaphorGoDevelopment
+		go func() {
+			OpenPortForwardServiceWrapper(pkg.MetaphorGoDevelopmentServiceName, pkg.MetaphorGoDevelopmentNamespace, pkg.MetaphorGoDevelopmentServicePort, pkg.MetaphorGoDevelopmentServiceLocalPort, MetaphorGoDevelopmentStopChannel)
+			wg.Done()
+		}()
 
-	// MetaphorDevelopment
-	go func() {
-		OpenPortForwardServiceWrapper(pkg.MetaphorDevelopmentServiceName, pkg.MetaphorDevelopmentNamespace, pkg.MetaphorDevelopmentServicePort, pkg.MetaphorDevelopmentServiceLocalPort, MetaphorDevelopmentStopChannel)
-		wg.Done()
-	}()
+		// MetaphorDevelopment
+		go func() {
+			OpenPortForwardServiceWrapper(pkg.MetaphorDevelopmentServiceName, pkg.MetaphorDevelopmentNamespace, pkg.MetaphorDevelopmentServicePort, pkg.MetaphorDevelopmentServiceLocalPort, MetaphorDevelopmentStopChannel)
+			wg.Done()
+		}()
+	}
 
 	wg.Wait()
 	return nil

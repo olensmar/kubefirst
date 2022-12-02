@@ -2,14 +2,15 @@ package local
 
 import (
 	"fmt"
-	"github.com/kubefirst/kubefirst/internal/k8s"
-	"github.com/kubefirst/kubefirst/internal/reports"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/kubefirst/kubefirst/internal/k8s"
+	"github.com/kubefirst/kubefirst/internal/reports"
+	"github.com/spf13/cobra"
 )
 
 func NewCommandConnect() *cobra.Command {
@@ -56,7 +57,9 @@ func runConnect(cmd *cobra.Command, args []string) error {
 		log.Println("leaving port-forward command, port forwards are now closed")
 	}()
 
+	//todo: support skip metaphor
 	err := k8s.OpenPortForwardForLocal(
+		false,
 		vaultStopChannel,
 		argoStopChannel,
 		argoCDStopChannel,
