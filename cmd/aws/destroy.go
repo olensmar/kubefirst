@@ -15,6 +15,9 @@ import (
 func runDestroy(cmd *cobra.Command, args []string) error {
 	log.Println("running destroy aws github")
 
+	// nextKubefirstDestroyCommand := "`kubefirst aws destroy"
+	// nextKubefirstDestroyCommand = fmt.Sprintf("%s \n  --skip-tf-aws", nextKubefirstDestroyCommand)
+
 	config := configs.ReadConfig()
 
 	githubToken := config.GithubToken

@@ -29,13 +29,40 @@ const Gitlab = "gitlab"
 // ? or do we refactor this to handle all clouds and setups i.e. k3d
 func CloneRepo(gitRepoUrl, branch, gitRepoDestinationDir string) {
 	log.Printf("Trying to clone branch(%s):%s ", branch, gitRepoUrl)
-	_, err := git.PlainClone(gitRepoDestinationDir, false, &git.CloneOptions{
+
+	branchName := plumbing.NewBranchReferenceName("domain-refactor")
+
+	repo, err := git.PlainClone(gitRepoDestinationDir, false, &git.CloneOptions{
 		URL:           gitRepoUrl,
-		ReferenceName: plumbing.NewBranchReferenceName(branch),
+		ReferenceName: branchName,
 		SingleBranch:  true,
 	})
 	if err != nil {
 		log.Fatalf("error cloning git repository %s branch", gitRepoUrl, branch)
+	}
+
+	headRef, err := repo.Head()
+	if err != nil {
+		log.Panicf("Error Setting reference: %s, %s", gitRepoUrl, err)
+	}
+	ref := plumbing.NewHashReference(branchName, headRef.Hash())
+	err = repo.Storer.SetReference(ref)
+	if err != nil {
+		log.Panicf("error Storing reference: %s, %s", gitRepoUrl, err)
+	}
+	w, _ := repo.Worktree()
+	err = w.Checkout(&git.CheckoutOptions{Branch: ref.Name()})
+	//remove old branch
+	err = repo.Storer.RemoveReference(plumbing.NewBranchReferenceName(branch))
+	if err != nil {
+		log.Println(err)
+		// if source == "branch" {
+		// 	log.Panicf("error removing old branch: %s, %s", repoName, err)
+		// } else {
+		// 	//this code will probably fail from a tag sourced clone
+		// 	//post-1.9.0 tag some tests will be done to ensure the final logic.
+		// 	log.Printf("[101] error removing old branch: %s, %s", repoName, err)
+		// }
 	}
 }
 

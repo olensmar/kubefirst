@@ -116,6 +116,10 @@ var createGithubCmd = &cobra.Command{
 		progressPrinter.IncrementTracker("step-apps", 1)
 
 		//! argocd was just helm installed
+		//!
+		//!
+		//!
+		//!
 		waitArgoCDToBeReady(globalFlags.DryRun)
 		informUser("ArgoCD Ready", globalFlags.SilentMode)
 

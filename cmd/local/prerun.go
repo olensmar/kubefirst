@@ -2,6 +2,10 @@ package local
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/dustin/go-humanize"
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/internal/addon"
@@ -14,9 +18,6 @@ import (
 	"github.com/kubefirst/kubefirst/pkg"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
-	"net/http"
-	"time"
 )
 
 func validateLocal(cmd *cobra.Command, args []string) error {
@@ -31,9 +32,9 @@ func validateLocal(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if err := pkg.ValidateK1Folder(config.K1FolderPath); err != nil {
-		return err
-	}
+	// if err := pkg.ValidateK1Folder(config.K1FolderPath); err != nil {
+	// 	return err
+	// }
 
 	// check disk
 	free, err := pkg.GetAvailableDiskSize()
