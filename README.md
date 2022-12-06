@@ -198,6 +198,7 @@ Did you know our superhero mascot K-Ray gets its frictionless superpowers from a
 
 todo: 
 - standardize URL / Url
+- add support for giving `my-gitops-repo-url` and dont clone
 - move all config to config or to pkg but not both
 - remove duplicate constants
 - todo githubUser or githubUsername
