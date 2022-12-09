@@ -103,10 +103,6 @@ func runLocal(cmd *cobra.Command, args []string) error {
 		progressPrinter.IncrementTracker("step-telemetry", 1)
 	}
 
-	// todo need to add go channel to control when ngrok should close
-	// and use context to handle closing the open goroutine/connection
-	//go pkg.RunNgrok(context.TODO(), pkg.LocalAtlantisURL)
-
 	if !viper.GetBool("kubefirst.done") {
 		if viper.GetString("gitprovider") == "github" {
 			log.Info().Msg("Installing Github version of Kubefirst")

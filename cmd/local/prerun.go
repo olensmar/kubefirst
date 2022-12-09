@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"github.com/kubefirst/kubefirst/internal/ngrok"
 	"net/http"
 	"time"
 
@@ -75,8 +76,12 @@ func validateLocal(cmd *cobra.Command, args []string) error {
 	viper.Set("vault.local.service", pkg.VaultLocalURLTLS)
 	viper.Set("use-telemetry", useTelemetry)
 
-
 	go pkg.RunNgrok(context.TODO())
+	ngrokContext, ngrokCancel := context.WithCancel(context.Background())
+	ngrokTunnel := ngrok.NewNgrok(ngrokContext, ngrokCancel)
+	go ngrokTunnel.OpenTunnel()
+	// todo: call it at the end of installation
+	//ngrokCancel()
 
 	// addons
 	addon.AddAddon("github")
