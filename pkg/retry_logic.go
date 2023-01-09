@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func retry(attempts int, sleep time.Duration, action string, f func() error) error {
+func Retry(attempts int, sleep time.Duration, action string, f func() error) error {
 	if err := f(); err != nil {
 		if s, ok := err.(stop); ok {
 			return s.error
@@ -19,7 +19,7 @@ func retry(attempts int, sleep time.Duration, action string, f func() error) err
 			sleep = sleep + jitter/2
 
 			time.Sleep(sleep)
-			return retry(attempts, 2*sleep, action, f)
+			return Retry(attempts, 2*sleep, action, f)
 		}
 		return err
 	}

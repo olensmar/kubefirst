@@ -370,13 +370,34 @@ func initActionAutoApprove(dryRun bool, tfAction, tfEntrypoint string) {
 	}
 	err = pkg.ExecShellWithVars(envs, config.TerraformClientPath, "init")
 	if err != nil {
-		log.Panic().Msgf("error: terraform init for %s failed %s", tfEntrypoint, err)
+		//log.Panic().Msgf("error: terraform init for %s failed %s", tfEntrypoint, err)
+		log.Error().Err(err).Msg("")
 	}
+
+	pkg.Retry(50, time.Second, "init terraform", func() error {
+		err = pkg.ExecShellWithVars(envs, config.TerraformClientPath, "init")
+		if err != nil {
+			log.Debug().Err(err).Msg("")
+			return err
+		}
+		return nil
+	})
 
 	err = pkg.ExecShellWithVars(envs, config.TerraformClientPath, tfAction, "-auto-approve")
 	if err != nil {
-		log.Panic().Msgf("error: terraform %s -auto-approve for %s failed %s", tfAction, tfEntrypoint, err)
+		//log.Panic().Msgf("error: terraform %s -auto-approve for %s failed %s", tfAction, tfEntrypoint, err)
+		log.Error().Err(err).Msg("")
 	}
+
+	pkg.Retry(50, time.Second, "apply terraform", func() error {
+		err = pkg.ExecShellWithVars(envs, config.TerraformClientPath, tfAction, "-auto-approve")
+		if err != nil {
+			log.Debug().Err(err).Msg("")
+			return err
+		}
+		return nil
+	})
+
 	os.RemoveAll(fmt.Sprintf("%s/.terraform/", tfEntrypoint))
 	os.Remove(fmt.Sprintf("%s/.terraform.lock.hcl", tfEntrypoint))
 	viper.Set(kubefirstConfigPath, true)

@@ -22,8 +22,10 @@ func RunNgrok(ctx context.Context) {
 		log.Error().Err(err).Msg("")
 	}
 
-	retry(3, time.Second, "create ngrok tunnel", func() error {
+	Retry(3, time.Second, "create ngrok tunnel", func() error {
 		tunnel, err = ngrok.StartTunnel(ctx, config.HTTPEndpoint(), ngrok.WithAuthtokenFromEnv())
+		log.Debug().Msg("TUNNEL ------------ ")
+		log.Debug().Msg(tunnel.Metadata())
 		if err != nil {
 			log.Debug().Err(err).Msg("")
 			return err

@@ -2,9 +2,10 @@ package k3d
 
 import (
 	"errors"
-	"github.com/rs/zerolog/log"
 	"os"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/kubefirst/kubefirst/configs"
 	"github.com/kubefirst/kubefirst/pkg"
@@ -20,10 +21,11 @@ func CreateK3dCluster() error {
 	if !viper.GetBool("k3d.created") {
 		// k3d cluster create kubefirst  --agents 3 --agents-memory 1024m  --registry-create k3d-kubefirst-registry:63630
 		//_, _, err := pkg.ExecShellReturnStrings(config.K3dPath, "cluster", "create", viper.GetString("cluster-name"),
-		_, _, err := pkg.ExecShellReturnStrings(config.K3dPath, "cluster", "create",
+		log.Info().Msgf("config.K3dPath: ", config.K3dPath)
+		_, _, err := pkg.ExecShellReturnStrings(config.K3dPath, "cluster", "create", "--verbose", "--trace",
 			viper.GetString("cluster-name"),
 			"--agents", "3",
-			"--agents-memory", "1024m",
+			//"--agents-memory", "1024m",
 			"--registry-create", "k3d-"+viper.GetString("cluster-name")+"-registry:63630",
 			"--k3s-arg", `--kubelet-arg=eviction-hard=imagefs.available<1%,nodefs.available<1%@agent:*`,
 			"--k3s-arg", `--kubelet-arg=eviction-minimum-reclaim=imagefs.available=1%,nodefs.available=1%@agent:*`,
