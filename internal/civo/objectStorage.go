@@ -82,7 +82,7 @@ func checkKubefirstCredentials(credentialName, region string) (civogo.ObjectStor
 	return creds, err
 }
 
-func CheckIfStorageBucketExists(bucketName, region string) (civogo.ObjectStore, error) {
+func GetStorageBucket(bucketName, region string) (civogo.ObjectStore, error) {
 	client, err := civogo.NewClient(os.Getenv("CIVO_TOKEN"), region)
 	if err != nil {
 		log.Info().Msg(err.Error())

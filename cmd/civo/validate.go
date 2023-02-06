@@ -202,11 +202,11 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	}
 
 	// todo create a new `kubefirst-state-store` bucket
-	bucket, err := civo.CheckIfStorageBucketExists(accessKeyId, cloudRegionFlag)
+	bucket, err := civo.GetStorageBucket(accessKeyId, cloudRegionFlag)
 	if err != nil {
 		log.Info().Msg(err.Error())
 	}
-	if &bucket == nil {
+	if bucket.ID == "" {
 		accessKeyId := viper.GetString("civo.object-storage-creds.access-key-id")
 		log.Info().Msgf("access key id %s", accessKeyId)
 
