@@ -206,6 +206,7 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Info().Msg(err.Error())
 	}
+
 	if bucket.ID == "" {
 		accessKeyId := viper.GetString("civo.object-storage-creds.access-key-id")
 		log.Info().Msgf("access key id %s", accessKeyId)
