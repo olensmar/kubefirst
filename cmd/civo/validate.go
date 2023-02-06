@@ -158,9 +158,9 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	pkg.InformUser("checking authentication to required providers", silentModeFlag)
 
 	//* CIVO START
-	executionControl := viper.GetBool("kubefirst.checks.civo.complete")
-	if !executionControl {
-		civoToken := viper.GetString("civo.token")
+	civoToken := viper.GetString("civo.token")
+	//set civoToken if not done already
+	if civoToken == "" {
 		if os.Getenv("CIVO_TOKEN") != "" {
 			civoToken = os.Getenv("CIVO_TOKEN")
 		}
@@ -181,12 +181,15 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 		log.Info().Msg("already completed civo token check - continuing")
 	}
 
-	executionControl = viper.GetBool("civo.object-storage-creds.complete")
-	if !executionControl {
-		creds, err := civo.GetAccessCredentials(kubefirstStateStoreBucketName, cloudRegionFlag)
-		if err != nil {
-			log.Info().Msg(err.Error())
-		}
+	//check credentials are valid
+	creds, err := civo.GetAccessCredentials(kubefirstStateStoreBucketName, cloudRegionFlag)
+	if err != nil {
+		log.Info().Msg(err.Error())
+	}
+
+	accessKeyId := viper.GetString("civo.object-storage-creds.access-key-id")
+	//set credentials if not yet set
+	if accessKeyId == "" {
 		viper.Set("civo.object-storage-creds.access-key-id", creds.AccessKeyID)
 		viper.Set("civo.object-storage-creds.secret-access-key-id", creds.SecretAccessKeyID)
 		viper.Set("civo.object-storage-creds.name", creds.Name)
@@ -197,9 +200,13 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	} else {
 		log.Info().Msg("already created civo object storage credentials - continuing")
 	}
+
 	// todo create a new `kubefirst-state-store` bucket
-	executionControl = viper.GetBool("kubefirst.state-store-bucket.complete")
-	if !executionControl {
+	bucket, err := civo.CheckIfStorageBucketExists(accessKeyId, cloudRegionFlag)
+	if err != nil {
+		log.Info().Msg(err.Error())
+	}
+	if &bucket == nil {
 		accessKeyId := viper.GetString("civo.object-storage-creds.access-key-id")
 		log.Info().Msgf("access key id %s", accessKeyId)
 
@@ -219,7 +226,7 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	}
 	//* CIVO END
 
-	executionControl = viper.GetBool("kubefirst.checks.github.complete")
+	executionControl := viper.GetBool("kubefirst.checks.github.complete")
 	if !executionControl {
 
 		httpClient := http.DefaultClient
@@ -327,6 +334,7 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 		viper.Set("kubefirst.cluster-type", clusterTypeFlag)
 		viper.Set("domain-name", domainNameFlag) // todo refactor to domain-name
 		viper.Set("cloud-region", cloudRegionFlag)
+		viper.Set("kubefirst.checks.civo.complete", true)
 
 		viper.Set("kubefirst.bot.password", kbotPasswordFlag)
 		viper.Set("kubefirst.bot.private-key", sshPrivateKey)
