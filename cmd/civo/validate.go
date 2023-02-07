@@ -7,9 +7,11 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/kubefirst/kubefirst/internal/aws"
 	"github.com/kubefirst/kubefirst/internal/civo"
 	"github.com/kubefirst/kubefirst/internal/githubWrapper"
 	"github.com/kubefirst/kubefirst/internal/handlers"
+	"github.com/kubefirst/kubefirst/internal/progressPrinter"
 	"github.com/kubefirst/kubefirst/internal/services"
 	"github.com/kubefirst/kubefirst/internal/ssh"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
@@ -158,31 +160,27 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	pkg.InformUser("checking authentication to required providers", silentModeFlag)
 
 	//* CIVO START
-	civoToken := viper.GetString("civo.token")
+	civoToken := os.Getenv("CIVO_TOKEN")
 	//set civoToken if not done already
 	if civoToken == "" {
-		if os.Getenv("CIVO_TOKEN") != "" {
-			civoToken = os.Getenv("CIVO_TOKEN")
+
+		fmt.Println("\n\nYour CIVO_TOKEN environment variable isn't set,\nvisit this link https://dashboard.civo.com/security to retrieve your token\nand enter it here, then press Enter:")
+		civoToken, err := terminal.ReadPassword(0)
+		if err != nil {
+			return errors.New("error reading password input from user")
 		}
 
-		if civoToken == "" {
-			fmt.Println("\n\nYour CIVO_TOKEN environment variable isn't set,\nvisit this link https://dashboard.civo.com/security to retrieve your token\nand enter it here, then press Enter:")
-			civoToken, err := terminal.ReadPassword(0)
-			if err != nil {
-				return errors.New("error reading password input from user")
-			}
-
-			os.Setenv("CIVO_TOKEN", string(civoToken))
-			log.Info().Msg("CIVO_TOKEN set - continuing")
-		}
-		viper.Set("kubefirst.checks.civo.complete", true)
-		viper.WriteConfig()
+		os.Setenv("CIVO_TOKEN", string(civoToken))
+		log.Info().Msg("CIVO_TOKEN set - continuing")
 	} else {
 		log.Info().Msg("already completed civo token check - continuing")
 	}
 
+	viper.Set("kubefirst.checks.civo.complete", true)
+	viper.WriteConfig()
+
 	//check credentials are valid
-	creds, err := civo.GetAccessCredentials(kubefirstStateStoreBucketName, cloudRegionFlag)
+	_, err = civo.CheckKubefirstCredentials(kubefirstStateStoreBucketName, cloudRegionFlag)
 	if err != nil {
 		log.Info().Msg(err.Error())
 	}
@@ -190,6 +188,10 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	accessKeyId := viper.GetString("civo.object-storage-creds.access-key-id")
 	//set credentials if not yet set
 	if accessKeyId == "" {
+		creds, err := civo.GetAccessCredentials(kubefirstStateStoreBucketName, cloudRegionFlag)
+		if err != nil {
+			log.Info().Msg(err.Error())
+		}
 		viper.Set("civo.object-storage-creds.access-key-id", creds.AccessKeyID)
 		viper.Set("civo.object-storage-creds.secret-access-key-id", creds.SecretAccessKeyID)
 		viper.Set("civo.object-storage-creds.name", creds.Name)
@@ -199,6 +201,49 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 		log.Info().Msg("civo object storage credentials created and set")
 	} else {
 		log.Info().Msg("already created civo object storage credentials - continuing")
+	}
+
+	if cloudProvider == pkg.CloudCivo {
+		//! tracker 1
+		log.Info().Msg("getting civo account information")
+		aws.GetAccountInfo()
+		log.Info().Msgf("aws account id: %s\naws user arn: %s", viper.GetString("aws.accountid"), viper.GetString("aws.userarn"))
+		progressPrinter.IncrementTracker("step-account", 1)
+
+		//! tracker 2
+		// hosted zone id
+		// So we don't have to keep looking it up from the domain name to use it
+		domainId, err := civo.GetDNSInfo(domainNameFlag, cloudRegionFlag)
+		if err != nil {
+			log.Info().Msg(err.Error())
+		}
+
+		// viper values set in above function
+		log.Info().Msgf("domainId: %s", domainId)
+		progressPrinter.IncrementTracker("step-dns", 1)
+
+		//! tracker 3
+		// todo: this doesn't default to testing the dns check
+		skipDomainCheck := viper.GetBool("init.domaincheck.enabled")
+		if !skipDomainCheck {
+			hostedZoneLiveness := civo.TestDomainLiveness(false, domainNameFlag, domainId, cloudRegionFlag)
+			if !hostedZoneLiveness {
+				msg := "failed to check the liveness of the Domain. A valid public Domain on the same CIVO " +
+					"account as the one where Kubefirst will be installed is required for this operation to " +
+					"complete.\nTroubleshoot Steps:\n\n - Make sure you are using the correct CIVO account and " +
+					"region.\n - Verify that you have the necessary permissions to access the domain.\n - Check " +
+					"that the domain is correctly configured and is a public domain\n - Check if the " +
+					"domain exists and has the correct name and domain.\n - If you don't have a Domain," +
+					"please follow these instructions to create one: " +
+					"https://www.civo.com/learn/configure-dns \n\n" +
+					"if you are still facing issues please reach out to support team for further assistance"
+				log.Error().Msg(msg)
+				return errors.New(msg)
+			}
+		} else {
+			log.Info().Msg("skipping domain check")
+		}
+		progressPrinter.IncrementTracker("step-live", 1)
 	}
 
 	// todo create a new `kubefirst-state-store` bucket

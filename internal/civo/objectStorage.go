@@ -30,7 +30,7 @@ func CreateStorageBucket(accessKeyId, bucketName, region string) (civogo.ObjectS
 // todo refactor or remove this internal library and use the native client. functionality. see next todo client.
 func GetAccessCredentials(credentialName, region string) (civogo.ObjectStoreCredential, error) {
 
-	creds, err := checkKubefirstCredentials(credentialName, region)
+	creds, err := CheckKubefirstCredentials(credentialName, region)
 	if err != nil {
 		log.Info().Msg(err.Error())
 	}
@@ -54,7 +54,7 @@ func GetAccessCredentials(credentialName, region string) (civogo.ObjectStoreCred
 	return creds, nil
 }
 
-func checkKubefirstCredentials(credentialName, region string) (civogo.ObjectStoreCredential, error) {
+func CheckKubefirstCredentials(credentialName, region string) (civogo.ObjectStoreCredential, error) {
 
 	client, err := civogo.NewClient(os.Getenv("CIVO_TOKEN"), region)
 	if err != nil {

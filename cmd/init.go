@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubefirst/kubefirst/internal/civo"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
 
 	"github.com/rs/zerolog/log"
@@ -222,54 +221,6 @@ validated and configured.`,
 						"hosted zone exists and has the correct name and domain.\n - If you don't have a HostedZone," +
 						"please follow these instructions to create one: " +
 						"https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-working-with.html \n\n" +
-						"if you are still facing issues please reach out to support team for further assistance"
-					log.Error().Msg(msg)
-					return errors.New(msg)
-				}
-			} else {
-				log.Info().Msg("skipping hosted zone check")
-			}
-			progressPrinter.IncrementTracker("step-live", 1)
-
-			//! tracker 4
-			//* should we consider going down to a single bucket
-			//* for state and artifacts on open source?
-			//* hitting a bucket limit on an install might deter someone
-			log.Info().Msg("creating buckets for state and artifacts")
-			aws.BucketRand(globalFlags.DryRun)
-			progressPrinter.IncrementTracker("step-buckets", 1)
-			log.Info().Msg("BucketRand() complete")
-		}
-
-		if installerFlags.Cloud == pkg.CloudCivo {
-			//! tracker 1
-			log.Info().Msg("getting civo account information")
-			aws.GetAccountInfo()
-			log.Info().Msgf("aws account id: %s\naws user arn: %s", viper.GetString("aws.accountid"), viper.GetString("aws.userarn"))
-			progressPrinter.IncrementTracker("step-account", 1)
-
-			//! tracker 2
-			// hosted zone id
-			// So we don't have to keep looking it up from the domain name to use it
-			domainId := aws.GetDNSInfo(globalFlags.DomainName)
-			// viper values set in above function
-			log.Info().Msgf("domainId: %s", domainId)
-			progressPrinter.IncrementTracker("step-dns", 1)
-
-			//! tracker 3
-			// todo: this doesn't default to testing the dns check
-			skipDomainCheck := viper.GetBool("init.domaincheck.enabled")
-			if !skipDomainCheck {
-				hostedZoneLiveness := civo.TestDomainLiveness(globalFlags.DryRun, awsFlags.HostedZoneName, domainId, globalFlags.region)
-				if !hostedZoneLiveness {
-					msg := "failed to check the liveness of the Domain. A valid public Domain on the same CIVO " +
-						"account as the one where Kubefirst will be installed is required for this operation to " +
-						"complete.\nTroubleshoot Steps:\n\n - Make sure you are using the correct CIVO account and " +
-						"region.\n - Verify that you have the necessary permissions to access the domain.\n - Check " +
-						"that the domain is correctly configured and is a public domain\n - Check if the " +
-						"domain exists and has the correct name and domain.\n - If you don't have a Domain," +
-						"please follow these instructions to create one: " +
-						"https://www.civo.com/learn/configure-dns \n\n" +
 						"if you are still facing issues please reach out to support team for further assistance"
 					log.Error().Msg(msg)
 					return errors.New(msg)
