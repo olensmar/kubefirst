@@ -7,11 +7,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/kubefirst/kubefirst/internal/aws"
 	"github.com/kubefirst/kubefirst/internal/civo"
 	"github.com/kubefirst/kubefirst/internal/githubWrapper"
 	"github.com/kubefirst/kubefirst/internal/handlers"
-	"github.com/kubefirst/kubefirst/internal/progressPrinter"
 	"github.com/kubefirst/kubefirst/internal/services"
 	"github.com/kubefirst/kubefirst/internal/ssh"
 	"github.com/kubefirst/kubefirst/internal/wrappers"
@@ -204,13 +202,7 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 	}
 
 	if cloudProvider == pkg.CloudCivo {
-		//! tracker 1
-		log.Info().Msg("getting civo account information")
-		aws.GetAccountInfo()
-		log.Info().Msgf("aws account id: %s\naws user arn: %s", viper.GetString("aws.accountid"), viper.GetString("aws.userarn"))
-		progressPrinter.IncrementTracker("step-account", 1)
 
-		//! tracker 2
 		// hosted zone id
 		// So we don't have to keep looking it up from the domain name to use it
 		domainId, err := civo.GetDNSInfo(domainNameFlag, cloudRegionFlag)
@@ -220,7 +212,6 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 
 		// viper values set in above function
 		log.Info().Msgf("domainId: %s", domainId)
-		progressPrinter.IncrementTracker("step-dns", 1)
 
 		//! tracker 3
 		// todo: this doesn't default to testing the dns check
@@ -243,7 +234,6 @@ func validateCivo(cmd *cobra.Command, args []string) error {
 		} else {
 			log.Info().Msg("skipping domain check")
 		}
-		progressPrinter.IncrementTracker("step-live", 1)
 	}
 
 	// todo create a new `kubefirst-state-store` bucket

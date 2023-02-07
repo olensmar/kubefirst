@@ -38,8 +38,8 @@ func TestDomainLiveness(dryRun bool, domainName, domainId, region string) bool {
 	}
 
 	log.Info().Msgf("checking to see if record %s exists", domainName)
-	log.Info().Msgf("hostedZoneId %s", domainId)
-	log.Info().Msgf("route53RecordName %s", domainName)
+	log.Info().Msgf("domainId %s", domainId)
+	log.Info().Msgf("domainName %s", domainName)
 
 	civoRecordConfig := &civogo.DNSRecordConfig{
 		Type:     civogo.DNSRecordTypeTXT,
@@ -50,6 +50,7 @@ func TestDomainLiveness(dryRun bool, domainName, domainId, region string) bool {
 	}
 	record, err := civoClient.CreateDNSRecord(domainName, civoRecordConfig)
 	if err != nil {
+		log.Warn().Msg("DOMAIN: " + domainName)
 		log.Warn().Msgf("%s", err)
 		return false
 	}
