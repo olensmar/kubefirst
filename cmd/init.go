@@ -258,6 +258,11 @@ validated and configured.`,
 			}
 		}
 
+		if installerFlags.Cloud == pkg.CloudCivo {
+			log.Info().Msg("getting civo account information")
+
+		}
+
 		viper.WriteConfig()
 
 		// workaround to wait for segmentIo process the message
