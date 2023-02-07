@@ -166,7 +166,7 @@ func AddK3DSecrets(dryRun bool, kubeconfigPath string) error {
 		"GITHUB_TOKEN":                        []byte(os.Getenv("GITHUB_TOKEN")),
 		"TF_VAR_atlantis_repo_webhook_secret": []byte(viper.GetString("github.atlantis.webhook.secret")),
 		"TF_VAR_atlantis_repo_webhook_url":    []byte(viper.GetString("github.atlantis.webhook.url")),
-		"TF_VAR_email_address":                []byte(viper.GetString("adminemail")),
+		"TF_VAR_email_address":                []byte(viper.GetString("admin-email")),
 		"TF_VAR_github_token":                 []byte(os.Getenv("GITHUB_TOKEN")),
 		"TF_VAR_kubefirst_bot_ssh_public_key": []byte(viper.GetString("kubefirst.bot.public-key")),
 		"TF_VAR_vault_addr":                   []byte("http://vault.vault.svc.cluster.local:8200"),

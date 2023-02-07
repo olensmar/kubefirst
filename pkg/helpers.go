@@ -125,7 +125,7 @@ func DetokenizeDirectory(path string, fi os.FileInfo, err error) error {
 		bucketChartmuseum := viper.GetString("bucket.chartmuseum.name")
 		region := viper.GetString("aws.region")
 		eksNodeGroupArn := viper.GetString("aws.node-group-arn")
-		adminEmail := viper.GetString("adminemail")
+		adminEmail := viper.GetString("admin-email")
 		awsAccountId := viper.GetString("aws.accountid")
 		kmsKeyId := viper.GetString("vault.kmskeyid")
 		clusterName := viper.GetString("cluster-name")

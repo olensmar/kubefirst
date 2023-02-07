@@ -73,8 +73,8 @@ func ProcessInstallerGenericFlags(cmd *cobra.Command) (InstallerGenericFlags, er
 		return InstallerGenericFlags{}, err
 	}
 	flags.AdminEmail = adminEmail
-	log.Info().Msgf("adminEmail: %s", adminEmail)
-	viper.Set("adminemail", adminEmail)
+	log.Info().Msgf("admin-email: %s", adminEmail)
+	viper.Set("admin-email", adminEmail)
 
 	clusterName, err := ReadConfigString(cmd, "cluster-name")
 	if err != nil {
@@ -214,7 +214,7 @@ func validateInstallationFlags() error {
 	//If you are changind this rules, please ensure to update:
 	// internal/flagset/init_test.go
 	// todo validate on email address if not local
-	// if len(viper.GetString("adminemail")) < 1 {
+	// if len(viper.GetString("admin-email")) < 1 {
 	// 	message := "missing flag --admin-email"
 	// 	log.Println(message)
 	// 	return errors.New(message)

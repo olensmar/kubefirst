@@ -50,7 +50,7 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 	case "vault":
 		log.Info().Msg("Collecting Vault Vars")
 		if viper.GetString("cloud") == pkg.CloudK3d {
-			envs["TF_VAR_email_address"] = viper.GetString("adminemail")
+			envs["TF_VAR_email_address"] = viper.GetString("admin-email")
 			envs["TF_VAR_github_token"] = os.Getenv("KUBEFIRST_GITHUB_AUTH_TOKEN")
 			envs["TF_VAR_vault_addr"] = viper.GetString("vault.local.service")
 			envs["TF_VAR_vault_token"] = viper.GetString("vault.token")
@@ -73,7 +73,7 @@ func terraformConfig(terraformEntryPoint string) map[string]string {
 		envs["TF_VAR_vault_addr"] = fmt.Sprintf("https://vault.%s", viper.GetString("aws.hostedzonename"))
 		envs["TF_VAR_aws_account_id"] = viper.GetString("aws.accountid")
 		envs["TF_VAR_aws_region"] = viper.GetString("aws.region")
-		envs["TF_VAR_email_address"] = viper.GetString("adminemail")
+		envs["TF_VAR_email_address"] = viper.GetString("admin-email")
 		envs["TF_VAR_github_token"] = os.Getenv("GITHUB_TOKEN")
 		envs["TF_VAR_hosted_zone_id"] = viper.GetString("aws.hostedzoneid") //# TODO: are we using this?
 		envs["TF_VAR_hosted_zone_name"] = viper.GetString("aws.hostedzonename")
