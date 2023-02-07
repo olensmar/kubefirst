@@ -46,11 +46,10 @@ func TestDomainLiveness(dryRun bool, domainName, domainId, region string) bool {
 		Name:     civoRecordName,
 		Value:    civoRecordValue,
 		Priority: 100,
-		TTL:      10,
+		TTL:      1,
 	}
-	record, err := civoClient.CreateDNSRecord(domainName, civoRecordConfig)
+	record, err := civoClient.CreateDNSRecord(domainId, civoRecordConfig)
 	if err != nil {
-		log.Warn().Msg("DOMAIN: " + domainName)
 		log.Warn().Msgf("%s", err)
 		return false
 	}
@@ -103,6 +102,10 @@ func GetDNSInfo(domainName, region string) (string, error) {
 		return "", err
 	}
 
-	return civoDNSDomain.AccountID, nil
+	dereferenceCivoDNSDomain := *civoDNSDomain
+
+	log.Warn().Msg("DOMAIN: " + civoDNSDomain.Name)
+
+	return dereferenceCivoDNSDomain.ID, nil
 
 }
