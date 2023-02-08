@@ -49,6 +49,7 @@ func TestDomainLiveness(dryRun bool, domainName, domainId, region string) bool {
 		TTL:      1,
 	}
 	record, err := civoClient.CreateDNSRecord(domainId, civoRecordConfig)
+	record2 := *record
 	if err != nil {
 		log.Warn().Msgf("%s", err)
 		return false
@@ -60,21 +61,21 @@ func TestDomainLiveness(dryRun bool, domainName, domainId, region string) bool {
 	for count <= 100 {
 		count++
 
-		log.Info().Msgf("%s", record.Name)
-		ips, err := net.LookupTXT(record.Name)
+		log.Info().Msgf("%s", civoRecordName)
+		ips, err := net.LookupTXT(civoRecordName)
 		if err != nil {
-			ips, err = backupResolver.LookupTXT(context.Background(), record.Name)
+			ips, err = backupResolver.LookupTXT(context.Background(), record2.Name)
 		}
 
 		log.Info().Msgf("%s", ips)
 
 		if err != nil {
-			log.Warn().Msgf("Could not get record name %s - waiting 10 seconds and trying again: \nerror: %s", record.Name, err)
+			log.Warn().Msgf("Could not get record name %s - waiting 10 seconds and trying again: \nerror: %s", civoRecordName, err)
 			time.Sleep(10 * time.Second)
 		} else {
 			for _, ip := range ips {
 				// todo check ip against route53RecordValue in some capacity so we can pivot the value for testing
-				log.Info().Msgf("%s. in TXT record value: %s\n", record.Name, ip)
+				log.Info().Msgf("%s. in TXT record value: %s\n", civoRecordName, ip)
 				count = 101
 			}
 		}
