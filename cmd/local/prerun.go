@@ -73,7 +73,7 @@ func validateLocal(cmd *cobra.Command, args []string) error {
 	viper.Set("github.owner", viper.GetString("github.user"))
 	viper.Set("cloud", pkg.CloudK3d)
 	viper.Set("cluster-name", pkg.LocalClusterName)
-	viper.Set("admin-email", adminEmail)
+	viper.Set("adminemail", adminEmail)
 
 	viper.Set("argocd.local.service", pkg.ArgoCDLocalURL)
 	viper.Set("vault.local.service", pkg.VaultLocalURLTLS)

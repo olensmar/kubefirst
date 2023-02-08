@@ -239,7 +239,6 @@ validated and configured.`,
 			progressPrinter.IncrementTracker("step-buckets", 1)
 			log.Info().Msg("BucketRand() complete")
 		}
-
 		//! tracker 5
 		log.Info().Msg("creating an ssh key pair for your new cloud infrastructure")
 		ssh.CreateSshKeyPair()
@@ -257,11 +256,6 @@ validated and configured.`,
 			if err := wrappers.SendSegmentIoTelemetry(awsFlags.HostedZoneName, pkg.MetricInitCompleted, "aws", "github"); err != nil {
 				log.Warn().Msgf("%s", err)
 			}
-		}
-
-		if installerFlags.Cloud == pkg.CloudCivo {
-			log.Info().Msg("getting civo account information")
-
 		}
 
 		viper.WriteConfig()

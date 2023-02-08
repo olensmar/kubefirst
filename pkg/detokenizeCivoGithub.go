@@ -91,7 +91,7 @@ func DetokenizeDirectoryCivoGithubGitops(path string, fi os.FileInfo, err error)
 		metaphorGoStagingIngressURL := fmt.Sprintf("https://metaphor-go-staging.%s", domainName)
 		metaphorGoProductionIngressURL := fmt.Sprintf("https://metaphor-go-production.%s", domainName)
 
-		newContents = strings.Replace(newContents, "<GIT_PROVIDER>", "GitHub", -1)
+		newContents = strings.Replace(newContents, "<GIT_PROVIDER>", "github", -1)
 		newContents = strings.Replace(newContents, "<GIT_NAMESPACE>", "N/A", -1)
 		newContents = strings.Replace(newContents, "<GIT_DESCRIPTION>", "GitHub hosted git", -1)
 		newContents = strings.Replace(newContents, "<GIT_URL>", gitopsURL, -1)
@@ -165,12 +165,13 @@ func DetokenizeDirectoryCivoGithubGitops(path string, fi os.FileInfo, err error)
 }
 
 // DetokenizeCivoGithubMetaphor - Translate tokens by values on a given path
-func DetokenizeCivoGithubMetaphor(path string) {
+func DetokenizeCivoGithubMetaphor(path string) error {
 
 	err := filepath.Walk(path, DetokenizeDirectoryCivoGithubMetaphor)
 	if err != nil {
-		log.Panic(err)
+		return err
 	}
+	return nil
 }
 
 // DetokenizeDirectoryCivoGithubMetaphor - Translate tokens by values on a directory level.
